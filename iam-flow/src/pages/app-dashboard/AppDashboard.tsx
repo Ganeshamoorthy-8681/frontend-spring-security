@@ -22,6 +22,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormHelperText from '@mui/material/FormHelperText';
 import Snackbar from '@mui/material/Snackbar';
+import Toolbar from '@mui/material/Toolbar';
 import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
 import ShieldIcon from '@mui/icons-material/Shield';
@@ -191,335 +192,350 @@ export default function AppDashboard() {
     }
   ];
 
-  if (loading) {
+
+
+  const renderDashboardContent = () => {
+    if (loading) {
+      return (
+        <Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)', xl: 'repeat(6, 1fr)' }, gap: 3, mb: 4 }}>
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </Box>
+                    <Skeleton variant="circular" width={40} height={40} />
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Skeleton variant="text" width="150px" height={28} sx={{ mb: 2 }} />
+              <Stack spacing={2}>
+                {[...Array(5)].map((_, i) => (
+                  <Box key={i} sx={{ p: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff', borderRadius: 1 }}>
+                    <Skeleton variant="text" width="80%" height={20} />
+                    <Skeleton variant="text" width="60px" height={16} />
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Skeleton variant="text" width="120px" height={28} sx={{ mb: 2 }} />
+              <Stack spacing={2}>
+                {[...Array(3)].map((_, i) => (
+                  <Box key={i} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    <Skeleton variant="text" width="70%" height={20} />
+                    <Skeleton variant="text" width="90%" height={16} />
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          </Box>
+        </Box>
+      );
+    }
+
     return (
       <Box>
-        <Skeleton variant="text" width="200px" height={40} sx={{ mb: 3 }} />
-        
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 3, mb: 4 }}>
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </Box>
-                  <Skeleton variant="circular" width={40} height={40} />
+        {/* Security Alert */}
+        {dashboardMetrics.failedLogins > 0 && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <strong>{dashboardMetrics.failedLogins} failed login attempts</strong> detected in the last 24 hours. 
+            Consider reviewing security logs.
+          </Alert>
+        )}
+
+        {/* Metrics Cards */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)', xl: 'repeat(6, 1fr)' }, gap: 3, mb: 4 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="primary">
+                        {dashboardMetrics.totalUsers}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Users
+                      </Typography>
+                    </>
+                  )}
                 </Box>
-              </CardContent>
-            </Card>
-          ))}
+                <PeopleIcon color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="success.main">
+                        {dashboardMetrics.activeUsers}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Active Users
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <TrendingUpIcon color="success" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="info.main">
+                        {dashboardMetrics.mfaEnabled}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        MFA Enabled
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <ShieldIcon color="info" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="warning.main">
+                        {dashboardMetrics.pendingInvitations}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pending Invites
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <MailOutlineIcon color="warning" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="error.main">
+                        {dashboardMetrics.failedLogins}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Failed Logins
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <WarningIcon color="error" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  {metricsLoading ? (
+                    <>
+                      <Skeleton variant="text" width="60px" height={32} />
+                      <Skeleton variant="text" width="100px" height={20} />
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="h4" color="warning.main">
+                        {dashboardMetrics.passwordExpiring}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Passwords Expiring
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <VpnKeyIcon color="warning" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
         </Box>
 
+        {/* Main Content Grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
+          {/* Recent Activity */}
           <Paper elevation={2} sx={{ p: 3 }}>
-            <Skeleton variant="text" width="150px" height={28} sx={{ mb: 2 }} />
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AccessTimeIcon color="primary" />
+              Recent Activity
+            </Typography>
             <Stack spacing={2}>
-              {[...Array(5)].map((_, i) => (
-                <Box key={i} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Skeleton variant="text" width="80%" height={20} />
-                  <Skeleton variant="text" width="60px" height={16} />
+              {recentActivity.map((activity, index) => (
+                <Box key={index} sx={{ 
+                  p: 2, 
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff', 
+                  borderRadius: 1,
+                  borderLeft: 4,
+                  borderLeftColor: activity.severity === 'warning' ? 'warning.main' : 
+                                 activity.severity === 'success' ? 'success.main' : 'info.main'
+                }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    {activity.severity === 'warning' && <WarningIcon color="warning" fontSize="small" />}
+                    {activity.severity === 'success' && <CheckCircleIcon color="success" fontSize="small" />}
+                    {activity.type === 'security' && activity.severity !== 'warning' && activity.severity !== 'success' && 
+                      <SecurityIcon color="info" fontSize="small" />}
+                    {activity.type === 'user' && <PeopleIcon color="info" fontSize="small" />}
+                    {activity.type === 'role' && <AdminPanelSettingsIcon color="info" fontSize="small" />}
+                    {activity.type === 'policy' && <SettingsIcon color="info" fontSize="small" />}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight="medium">
+                        {activity.action}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <AccessTimeIcon fontSize="inherit" />
+                        {activity.time}
+                      </Typography>
+                    </Box>
+                  </Stack>
                 </Box>
               ))}
             </Stack>
           </Paper>
 
+          {/* Quick Actions */}
           <Paper elevation={2} sx={{ p: 3 }}>
-            <Skeleton variant="text" width="120px" height={28} sx={{ mb: 2 }} />
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AdminPanelSettingsIcon color="primary" />
+              Quick Actions
+            </Typography>
             <Stack spacing={2}>
-              {[...Array(3)].map((_, i) => (
-                <Box key={i} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                  <Skeleton variant="text" width="70%" height={20} />
-                  <Skeleton variant="text" width="90%" height={16} />
-                </Box>
-              ))}
+              <Tooltip title="Add a new user to your organization">
+                <Button
+                  variant="outlined"
+                  startIcon={<PersonAddIcon />}
+                  fullWidth
+                  sx={{ justifyContent: 'flex-start', p: 2 }}
+                  onClick={() => handleQuickAction('createUser')}
+                >
+                  <Box sx={{ textAlign: 'left', flex: 1 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      Create New User
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Add a new user to your account
+                    </Typography>
+                  </Box>
+                </Button>
+              </Tooltip>
+              
+              <Tooltip title="Manage user roles and permissions">
+                <Button
+                  variant="outlined"
+                  startIcon={<AdminPanelSettingsIcon />}
+                  fullWidth
+                  sx={{ justifyContent: 'flex-start', p: 2 }}
+                  onClick={() => handleQuickAction('manageRoles')}
+                >
+                  <Box sx={{ textAlign: 'left', flex: 1 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      Manage Roles
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Create or edit user roles
+                    </Typography>
+                  </Box>
+                </Button>
+              </Tooltip>
+              
+              <Tooltip title="Configure account settings and policies">
+                <Button
+                  variant="outlined"
+                  startIcon={<SettingsIcon />}
+                  fullWidth
+                  sx={{ justifyContent: 'flex-start', p: 2 }}
+                  onClick={() => handleQuickAction('accountSettings')}
+                >
+                  <Box sx={{ textAlign: 'left', flex: 1 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      Account Settings
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Update account information
+                    </Typography>
+                  </Box>
+                </Button>
+              </Tooltip>
             </Stack>
           </Paper>
         </Box>
       </Box>
     );
-  }
+  };
 
   return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Dashboard
-        </Typography>
-        <Chip
-          label="Live Data"
-          color="success"
-          size="small"
-          icon={<CheckCircleIcon />}
-        />
-      </Stack>
-
-      {/* Security Alert */}
-      {dashboardMetrics.failedLogins > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <strong>{dashboardMetrics.failedLogins} failed login attempts</strong> detected in the last 24 hours. 
-          Consider reviewing security logs.
-        </Alert>
-      )}
-
-      {/* Metrics Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)', xl: 'repeat(6, 1fr)' }, gap: 3, mb: 4 }}>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="primary">
-                      {dashboardMetrics.totalUsers}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Users
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <PeopleIcon color="primary" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="success.main">
-                      {dashboardMetrics.activeUsers}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Active Users
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <TrendingUpIcon color="success" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="info.main">
-                      {dashboardMetrics.mfaEnabled}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      MFA Enabled
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <ShieldIcon color="info" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="warning.main">
-                      {dashboardMetrics.pendingInvitations}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Pending Invites
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <MailOutlineIcon color="warning" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="error.main">
-                      {dashboardMetrics.failedLogins}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Failed Logins
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <WarningIcon color="error" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                {metricsLoading ? (
-                  <>
-                    <Skeleton variant="text" width="60px" height={32} />
-                    <Skeleton variant="text" width="100px" height={20} />
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="h4" color="warning.main">
-                      {dashboardMetrics.passwordExpiring}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Passwords Expiring
-                    </Typography>
-                  </>
-                )}
-              </Box>
-              <VpnKeyIcon color="warning" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
-        {/* Recent Activity */}
-        <Paper elevation={2} sx={{ p: 3 }}>
+    <>
+      <Paper>
+        <Toolbar className="toolbar">
           <Typography variant="h6" gutterBottom>
-            Recent Activity
+            Dashboard
           </Typography>
-          <Stack spacing={2}>
-            {recentActivity.map((activity, index) => (
-              <Box key={index} sx={{ 
-                p: 2, 
-                bgcolor: activity.severity === 'warning' ? 'warning.light' : 'grey.50', 
-                borderRadius: 1,
-                borderLeft: 4,
-                borderLeftColor: activity.severity === 'warning' ? 'warning.main' : 
-                               activity.severity === 'success' ? 'success.main' : 'info.main'
-              }}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  {activity.severity === 'warning' && <WarningIcon color="warning" fontSize="small" />}
-                  {activity.severity === 'success' && <CheckCircleIcon color="success" fontSize="small" />}
-                  {activity.type === 'security' && activity.severity !== 'warning' && activity.severity !== 'success' && 
-                    <SecurityIcon color="info" fontSize="small" />}
-                  {activity.type === 'user' && <PeopleIcon color="info" fontSize="small" />}
-                  {activity.type === 'role' && <AdminPanelSettingsIcon color="info" fontSize="small" />}
-                  {activity.type === 'policy' && <SettingsIcon color="info" fontSize="small" />}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" fontWeight="medium">
-                      {activity.action}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <AccessTimeIcon fontSize="inherit" />
-                      {activity.time}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
+          <Chip
+            label="Live Data"
+            color="success"
+            size="small"
+            icon={<CheckCircleIcon />}
+          />
+        </Toolbar>
+      </Paper>
 
-        {/* Quick Actions */}
-        <Paper elevation={2} sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Quick Actions
-          </Typography>
-          <Stack spacing={2}>
-            <Tooltip title="Add a new user to your organization">
-              <Button
-                variant="outlined"
-                startIcon={<PersonAddIcon />}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', p: 2 }}
-                onClick={() => handleQuickAction('createUser')}
-              >
-                <Box sx={{ textAlign: 'left', flex: 1 }}>
-                  <Typography variant="body2" fontWeight="medium">
-                    Create New User
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Add a new user to your account
-                  </Typography>
-                </Box>
-              </Button>
-            </Tooltip>
-            
-            <Tooltip title="Manage user roles and permissions">
-              <Button
-                variant="outlined"
-                startIcon={<AdminPanelSettingsIcon />}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', p: 2 }}
-                onClick={() => handleQuickAction('manageRoles')}
-              >
-                <Box sx={{ textAlign: 'left', flex: 1 }}>
-                  <Typography variant="body2" fontWeight="medium">
-                    Manage Roles
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Create or edit user roles
-                  </Typography>
-                </Box>
-              </Button>
-            </Tooltip>
-            
-            <Tooltip title="Configure account settings and policies">
-              <Button
-                variant="outlined"
-                startIcon={<SettingsIcon />}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', p: 2 }}
-                onClick={() => handleQuickAction('accountSettings')}
-              >
-                <Box sx={{ textAlign: 'left', flex: 1 }}>
-                  <Typography variant="body2" fontWeight="medium">
-                    Account Settings
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Update account information
-                  </Typography>
-                </Box>
-              </Button>
-            </Tooltip>
-          </Stack>
-        </Paper>
-      </Box>
+      <div className="page-content">
+        {renderDashboardContent()}
+      </div>
 
       {/* Create User Dialog */}
       <Dialog open={createUserOpen} onClose={() => setCreateUserOpen(false)} maxWidth="sm" fullWidth>
@@ -703,6 +719,6 @@ export default function AppDashboard() {
           </IconButton>
         }
       />
-    </Box>
+    </>
   );
 }

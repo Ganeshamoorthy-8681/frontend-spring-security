@@ -1,25 +1,20 @@
-import styled from "@emotion/styled";
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
+import React from "react";
+import { 
+  Drawer, 
+  List, 
+  ListItem, 
+  ListItemButton, 
+  ListItemIcon, 
+  ListItemText,
+  useTheme 
+} from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import List from "@mui/material/List";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 
-const SidebarContainer = styled.div`
-  width: 240px;
-  background-color: #f4f4f4;
-  padding: 16px;
-
-  .active {
-    background-color: #e0e0e0;
-  }
-`;
-
+const drawerWidth = 240;
 
 interface NavigationItem {
   id: string;
@@ -55,45 +50,70 @@ const navigationItems: NavigationItem[] = [
   }
 ];
 
-
-
-const isPathActive = (itemPath: string) => {
-  if (itemPath === '/app/dashboard') {
-    return location.pathname === '/app/dashboard' || location.pathname === '/app';
-  }
-  return location.pathname.startsWith(itemPath);
-};
-
 export default function AppNavigationSidebar() {
-
   const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+
+  const isPathActive = (itemPath: string) => {
+    if (itemPath === '/app/dashboard') {
+      return location.pathname === '/app/dashboard' || location.pathname === '/app';
+    }
+    return location.pathname.startsWith(itemPath);
+  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
   };
 
   return (
-    <SidebarContainer>
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          marginTop: '64px',
+          height: 'calc(100vh - 64px)',
+        },
+      }}
+    >
       <List>
         {navigationItems.map((item) => {
           const isActive = isPathActive(item.path);
           return (
-            <ListItem key={item.id} disablePadding className={ isActive ? 'active' : ''}>
+            <ListItem key={item.id} disablePadding>
               <ListItemButton
-                selected={isActive}
                 onClick={() => handleNavigation(item.path)}
+                sx={{
+                  backgroundColor: isActive ? theme.palette.primary.light : 'transparent',
+                  color: isActive ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                  borderTopRightRadius: isActive ? '1.5rem' : 0,
+                  borderBottomRightRadius: isActive ? '1.5rem' : 0,
+                  '&:hover': {
+                    backgroundColor: isActive 
+                      ? theme.palette.primary.light 
+                      : theme.palette.action.hover,
+                  },
+                  '& .MuiListItemIcon-root': {
+                    color: isActive ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                  },
+                  '& .MuiListItemText-primary': {
+                    fontWeight: isActive ? 500 : 400,
+                  },
+                }}
               >
                 <ListItemIcon>
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                />
+                <ListItemText primary={item.label} />
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
-    </SidebarContainer>
+    </Drawer>
   );
 }
