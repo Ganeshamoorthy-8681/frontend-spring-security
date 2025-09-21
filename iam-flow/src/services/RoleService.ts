@@ -1,5 +1,5 @@
 import type { RoleCreateRequest } from '../models/request/RoleCreateRequest';
-import type { RoleCreateResponse as RoleResponse } from '../models/response/RoleCreateResponse';
+import type { RoleResponse as RoleResponse } from '../models/response/RoleResponse';
 import apiClient from './ApiClient';
 import type { ListQueryParams } from '../models/common/StandardTypes';
 import { UrlUtils } from '../utils/UrlUtils';
@@ -40,12 +40,12 @@ export class RoleService {
     );
   }
 
-  async list(accountId: number, params?: ListQueryParams): Promise<RoleResponse> {
+  async list(accountId: number, params?: ListQueryParams): Promise<RoleResponse[]> {
     const url = UrlUtils.buildUrl<ListQueryParams>(
-      `/api/v1/accounts/${accountId}/roles`,
+      `/api/v1/accounts/${accountId}/roles/list`,
       params
     );
-    const response = await apiClient.get<RoleResponse>(url);
+    const response = await apiClient.get<RoleResponse[]>(url);
     return response.data;
   }
 }
