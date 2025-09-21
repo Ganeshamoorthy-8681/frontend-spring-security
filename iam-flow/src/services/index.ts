@@ -38,5 +38,5 @@ export type { LoginRequest } from '../models/request/LoginRequest';
 
 // Role types
 export type { RoleCreateRequest } from '../models/request/RoleCreateRequest';
-export type { RoleCreateResponse } from '../models/response/RoleCreateResponse';
+export type { RoleResponse as RoleCreateResponse } from '../models/response/RoleResponse';
 

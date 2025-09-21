@@ -116,6 +116,25 @@ export class StubBackendService {
       }
 
       // Role routes - Check specific routes first
+
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles')) {
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles', 'accountId');
+
+        if (normalizedMethod === 'POST') {
+          const response = await this.roleBackend.createRole(parseInt(accountId), data as RoleCreateRequest);
+          return this.prepareAxiosResponse(config, response);
+        }
+      }
+
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles/list')) {
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles/list', 'accountId');
+
+        if (normalizedMethod === 'GET') {
+          const response = await this.roleBackend.getRoles(parseInt(accountId));
+          return this.prepareAxiosResponse(config, response);
+        }
+      }
+
       if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles/{roleId}')) {
         const accountId = this.extractPathParam(normalizedUrl, '/accounts/{accountId}/roles/{roleId}', 'accountId');
         const roleId = this.extractPathParam(normalizedUrl, '/accounts/{accountId}/roles/{roleId}', 'roleId');
@@ -128,18 +147,6 @@ export class StubBackendService {
           return this.prepareAxiosResponse(config, response);
         } else if (normalizedMethod === 'DELETE') {
           const response = await this.roleBackend.deleteRole(parseInt(accountId), parseInt(roleId));
-          return this.prepareAxiosResponse(config, response);
-        }
-      }
-
-      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles')) {
-        const accountId = this.extractPathParam(normalizedUrl, '/accounts/{accountId}/roles', 'accountId');
-
-        if (normalizedMethod === 'GET') {
-          const response = await this.roleBackend.getRoles(parseInt(accountId));
-          return this.prepareAxiosResponse(config, response);
-        } else if (normalizedMethod === 'POST') {
-          const response = await this.roleBackend.createRole(parseInt(accountId), data as RoleCreateRequest);
           return this.prepareAxiosResponse(config, response);
         }
       }

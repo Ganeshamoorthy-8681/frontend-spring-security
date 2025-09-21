@@ -37,7 +37,7 @@ export const mockUsers: UserResponse[] = [
     lastLogin: "2025-09-20T06:13:19.973353Z"
   },
     {
-    id: 2,
+    id: 3,
     firstName: "adams",
     lastName: "moorthy",
     email: "adams@gmail.com",
@@ -63,7 +63,7 @@ export const userMockHelpers = {
     return mockUsers.find(user => user.id === id) as UserResponse;
   },
 
-  getByAccountId: (accountId: number): UserModel[] => {
+  getByAccountId: (accountId: number): UserResponse[] => {
     return mockUsers.filter(user => user.accountId === accountId);
   },
 
@@ -84,7 +84,7 @@ export const userMockHelpers = {
     return newUser;
   },
 
-  update: (id: number, updates: Partial<UserModel>): UserModel | null => {
+  update: (id: number, updates: Partial<UserModel>): UserResponse | null => {
     const index = mockUsers.findIndex(user => user.id === id);
     if (index === -1) return null;
 
@@ -105,7 +105,7 @@ export const userMockHelpers = {
     return true;
   },
 
-  getAll: (): UserModel[] => {
+  getAll: (): UserResponse[] => {
     return [...mockUsers];
   }
 };

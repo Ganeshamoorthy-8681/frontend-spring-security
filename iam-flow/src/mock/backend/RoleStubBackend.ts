@@ -1,6 +1,7 @@
 import { roleMockHelpers } from '../data/roles';
 import type { RoleCreateRequest } from '../../services';
 import type { Role } from '../../models/response/RootUserCreateResponse';
+import type { RoleResponse } from '../../models/response/RoleResponse';
 
 /**
  * Stub backend service for role operations
@@ -36,13 +37,7 @@ export class RoleStubBackend {
     size?: number;
     search?: string;
     type?: 'SYSTEM' | 'CUSTOM';
-  }): Promise<{
-    roles: Role[];
-    totalElements: number;
-    totalPages: number;
-    currentPage: number;
-    pageSize: number;
-  }> {
+  }): Promise<RoleResponse[]> {
     await this.simulateDelay();
 
     let roles = roleMockHelpers.getByAccountId(accountId);
@@ -63,13 +58,7 @@ export class RoleStubBackend {
     const endIndex = startIndex + size;
     const paginatedRoles = roles.slice(startIndex, endIndex);
 
-    return {
-      roles: paginatedRoles,
-      totalElements: roles.length,
-      totalPages: Math.ceil(roles.length / size),
-      currentPage: page,
-      pageSize: size
-    };
+    return paginatedRoles;
   }
 
   /**

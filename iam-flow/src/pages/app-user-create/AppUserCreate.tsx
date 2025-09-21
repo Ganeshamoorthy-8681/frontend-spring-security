@@ -4,6 +4,9 @@ import { useState } from "react";
 import { FormProvider, useForm, type SubmitHandler } from "react-hook-form";
 import type { UserCreateForm } from "../../models/form/UserCreateForm";
 import RoleStep from "../../components/RoleStep";
+import { userService, type UserCreateRequest } from "../../services";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import type { UserRole } from "../../models/request/UserCreateRequest";
 
 const stepsConfig = [
   {
@@ -18,12 +21,11 @@ const stepsConfig = [
   }
 ];
 
-
 export default function AppUserCreate() {
-
 
   const [activeStep, setActiveStep] = useState(0);
 
+  const currentUser = useCurrentUser();
 
   const formMethods = useForm<UserCreateForm>({
     mode: 'onChange'
@@ -49,10 +51,26 @@ export default function AppUserCreate() {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  const handleFinish: SubmitHandler<UserCreateForm> = (data) => {
-    console.log('Form submitted:', data);
-    alert('Account created successfully!');
+  const handleFinish: SubmitHandler<UserCreateForm> = async (data) => {
+    try {
+      await createUser(data);
+      alert('User created successfully!');
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Failed to create user. Please try again.');
+    }
   };
+
+  async function createUser(data: UserCreateForm) {
+    const reqBody: UserCreateRequest = {
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      description: data.personalDescription ?? "",
+      roles: data.roles?.map((roleId) => ({ id: parseInt(roleId) })) as UserRole[]
+    };
+    return await userService.create(currentUser.accountId, reqBody);
+  }
 
   const renderStepContent = () => {
     return stepsConfig[activeStep]?.component;

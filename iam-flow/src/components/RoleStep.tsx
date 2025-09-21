@@ -10,21 +10,41 @@ import {
   OutlinedInput,
   FormHelperText,
   Typography,
-  Chip
+  Chip,
+  CircularProgress
 } from "@mui/material";
 import type { RoleStepForm } from "../models/form/RoleStepForm";
-
-// Example roles, replace with your actual roles or fetch from API
-const availableRoles = [
-  "Admin",
-  "User Manager",
-  "User",
-  "Account Owner",
-  "Developer"
-];
+import { useEffect, useState, useCallback } from "react";
+import { roleService } from "../services";
+import { useCurrentUser } from "../hooks/useCurrentUser";
+// Add the following import or type definition for RolesResponse
+import type { RoleResponse } from "../models/response/RoleResponse";
+import { toast } from "react-toastify";
 
 export default function RoleStep() {
+
   const { control } = useFormContext<RoleStepForm>();
+  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const currentUser = useCurrentUser();
+
+
+  const getRoles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const roles: RoleResponse[] = await roleService.list(currentUser.accountId);
+      setRoles(roles);
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to fetch roles");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser.accountId]);
+
+  useEffect(() => {
+    getRoles();
+  }, [getRoles]);
 
   return (
     <Box>
@@ -38,99 +58,133 @@ export default function RoleStep() {
         name="roles"
         control={control}
         rules={{ required: "At least one role must be selected" }}
-        render={({ field, fieldState }) => (
-          <FormControl fullWidth error={!!fieldState.error}>
-            <InputLabel id="role-select-label">Roles</InputLabel>
-            <Select
-              labelId="role-select-label"
-              multiple
-              value={field.value || []}
-              onChange={(event) => {
-                const value = event.target.value;
-                // Handle the case where the value is not an array (shouldn't happen with multiple select)
-                if (!Array.isArray(value)) return;
-                field.onChange(value);
-              }}
-              input={<OutlinedInput label="Roles" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {(selected as string[]).map((value) => (
-                    <Chip
-                      key={value}
-                      label={value}
-                      onDelete={() => {
-                        const newValue = (field.value || []).filter((role: string) => role !== value);
-                        field.onChange(newValue);
-                      }}
-                      onMouseDown={(event) => {
+        render={({ field, fieldState }) => {
+          if (!field) {
+            console.error('Field is undefined in RoleStep Controller');
+            return (
+              <FormControl fullWidth error>
+                <FormHelperText>Error: Field is undefined</FormHelperText>
+              </FormControl>
+            );
+          }
+          
+          return (
+            <FormControl fullWidth error={!!fieldState.error}>
+              <InputLabel id="role-select-label">Roles</InputLabel>
+              <Select
+                labelId="role-select-label"
+                multiple
+                value={field.value || []}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  // Handle the case where the value is not an array (shouldn't happen with multiple select)
+                  if (!Array.isArray(value)) return;
+                  field.onChange(value);
+                }}
+                disabled={loading}
+                input={<OutlinedInput label="Roles" />}
+                renderValue={(selected) => {
+                  if (!Array.isArray(selected)) return null;
+                  return (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((roleId) => {
+                        if (!roleId) return null;
+                        const role = roles.find(r => r.id.toString() === roleId);
+                        return (
+                          <Chip
+                            key={roleId}
+                            label={role?.name || roleId}
+                            onDelete={() => {
+                              const newValue = (field.value || []).filter((id: string) => id !== roleId);
+                              field.onChange(newValue);
+                            }}
+                            onMouseDown={(event) => {
+                              event.stopPropagation();
+                            }}
+                          />
+                        );
+                      })}
+                    </Box>
+                  );
+                }}
+            >
+              {loading ? (
+                <MenuItem key="loading" disabled>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', py: 2 }}>
+                    <CircularProgress size={24} sx={{ mr: 1 }} />
+                    <Typography variant="body2">Loading roles...</Typography>
+                  </Box>
+                </MenuItem>
+              ) : (
+                [
+                  <MenuItem
+                    key="select-all"
+                    dense
+                    sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
+                    onClick={(event) => {
+                      // Prevent the Select from closing
+                      event.stopPropagation();
+                      const allSelected = (field.value || []).length === roles.length;
+                      // Toggle between all selected and none selected
+                      field.onChange(allSelected ? [] : roles.map((role) => role.id.toString()));
+                    }}
+                  >
+                    <Checkbox
+                      checked={(field.value || []).length === roles.length}
+                      indeterminate={(field.value || []).length > 0 && (field.value || []).length < roles.length}
+                      onClick={(event) => {
+                        // Prevent triggering the MenuItem click
                         event.stopPropagation();
+                        const target = event.target as HTMLInputElement;
+                        field.onChange(target.checked ? roles.map((role) => role.id.toString()) : []);
                       }}
                     />
-                  ))}
-                </Box>
+                    <ListItemText
+                      primary={(field.value || []).length === roles.length ? "Deselect All" : "Select All"}
+                    />
+                  </MenuItem>
+                ].concat(
+                  roles.map((role) => (
+                    <MenuItem
+                      key={role.id}
+                      value={role.id.toString()}
+                      onClick={(event) => {
+                        // Prevent the Select from closing
+                        event.stopPropagation();
+                        const currentValue = field.value || [];
+                        const roleIdStr = role.id.toString();
+                        const newValue = currentValue.includes(roleIdStr)
+                          ? currentValue.filter((id: string) => id !== roleIdStr)
+                          : [...currentValue, roleIdStr];
+                        field.onChange(newValue);
+                      }}
+                    >
+                      <Checkbox
+                        checked={(field.value || []).includes(role.id.toString())}
+                        onClick={(event) => {
+                          // Prevent triggering the MenuItem click
+                          event.stopPropagation();
+                          const target = event.target as HTMLInputElement;
+                          const currentValue = field.value || [];
+                          const roleIdStr = role.id.toString();
+                          const newValue = target.checked
+                            ? [...currentValue, roleIdStr]
+                            : currentValue.filter((id: string) => id !== roleIdStr);
+                          field.onChange(newValue);
+                        }}
+                      />
+                      <ListItemText primary={role.name} />
+                    </MenuItem>
+                  ))
+                )
               )}
-            >
-              <MenuItem
-                dense
-                sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
-                onClick={(event) => {
-                  // Prevent the Select from closing
-                  event.stopPropagation();
-                  const allSelected = (field.value || []).length === availableRoles.length;
-                  // Toggle between all selected and none selected
-                  field.onChange(allSelected ? [] : availableRoles);
-                }}
-              >
-                <Checkbox
-                  checked={(field.value || []).length === availableRoles.length}
-                  indeterminate={(field.value || []).length > 0 && (field.value || []).length < availableRoles.length}
-                  onClick={(event) => {
-                    // Prevent triggering the MenuItem click
-                    event.stopPropagation();
-                    const target = event.target as HTMLInputElement;
-                    field.onChange(target.checked ? availableRoles : []);
-                  }}
-                />
-                <ListItemText
-                  primary={(field.value || []).length === availableRoles.length ? "Deselect All" : "Select All"}
-                />
-              </MenuItem>
-              {availableRoles.map((role) => (
-                <MenuItem
-                  key={role}
-                  value={role}
-                  onClick={(event) => {
-                    // Prevent the Select from closing
-                    event.stopPropagation();
-                    const currentValue = field.value || [];
-                    const newValue = currentValue.includes(role)
-                      ? currentValue.filter(r => r !== role)
-                      : [...currentValue, role];
-                    field.onChange(newValue);
-                  }}
-                >
-                  <Checkbox
-                    checked={(field.value || []).includes(role)}
-                    onClick={(event) => {
-                      // Prevent triggering the MenuItem click
-                      event.stopPropagation();
-                      const target = event.target as HTMLInputElement;
-                      const currentValue = field.value || [];
-                      const newValue = target.checked
-                        ? [...currentValue, role]
-                        : currentValue.filter(r => r !== role);
-                      field.onChange(newValue);
-                    }}
-                  />
-                  <ListItemText primary={role} />
-                </MenuItem>
-              ))}
-            </Select>
-            {fieldState.error && (
-              <FormHelperText>{fieldState.error.message}</FormHelperText>
-            )}
-          </FormControl>
-        )}
+              </Select>
+              {fieldState.error && (
+                <FormHelperText>{fieldState.error.message}</FormHelperText>
+              )}
+            </FormControl>
+          );
+        }}
       />
     </Box>
   );
