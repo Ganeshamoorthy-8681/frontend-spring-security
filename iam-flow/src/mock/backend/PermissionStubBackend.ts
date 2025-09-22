@@ -33,13 +33,7 @@ export class PermissionStubBackend {
     category?: string;
     resource?: string;
     scope?: 'GLOBAL' | 'ACCOUNT' | 'USER';
-  }): Promise<{
-    permissions: PermissionModel[];
-    totalElements: number;
-    totalPages: number;
-    currentPage: number;
-    pageSize: number;
-  }> {
+  }): Promise<PermissionModel[]> {
     await this.simulateDelay();
 
     const permissions = permissionMockHelpers.getAll();
@@ -51,12 +45,6 @@ export class PermissionStubBackend {
     const endIndex = startIndex + size;
     const paginatedPermissions = permissions.slice(startIndex, endIndex);
 
-    return {
-      permissions: paginatedPermissions,
-      totalElements: permissions.length,
-      totalPages: Math.ceil(permissions.length / size),
-      currentPage: page,
-      pageSize: size
-    };
+    return paginatedPermissions;
   }
 }

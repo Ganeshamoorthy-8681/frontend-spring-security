@@ -14,7 +14,7 @@ export class PermissionService {
    * This is a read-only operation
    */
   async list(): Promise<Permission[]> {
-    const response = await apiClient.get<Permission[]>(`/api/v1/permissions`);
+    const response = await apiClient.get<Permission[]>(`/api/v1/permissions/list`);
     return response.data;
   }
 }
