@@ -4,6 +4,17 @@
 import type { Role } from "../../models/response/RootUserCreateResponse";
 
 export const mockRoles = [
+   {
+    id: 1,
+    name: "USER READ",
+    description: "This role can make CRUD to users",
+    accountId: 1,
+    permissions: [
+      { "id": 2, "name": "IAM:USER:READ" },
+    ], 
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
   {
     id: 2,
     name: "USER MANAGER",

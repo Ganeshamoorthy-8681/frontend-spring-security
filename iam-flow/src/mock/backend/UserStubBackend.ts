@@ -1,4 +1,3 @@
-import type { UserModel } from '../../models/core/User';
 import type { UserUpdateRequest } from '../../models/request/UserUpdateRequest';
 import type { UserResponse } from '../../models/response/UserResponse';
 import type { SetPasswordRequest, UserCreateRequest } from '../../services';
@@ -81,7 +80,7 @@ export class UserStubBackend {
   /**
    * PUT /api/v1/accounts/{accountId}/users/{id}
    */
-  async updateUser(accountId: number, userId: number, updates: UserUpdateRequest): Promise<UserModel> {
+  async updateUser(accountId: number, userId: number, updates: UserUpdateRequest): Promise<UserResponse> {
     await this.simulateDelay(300);
 
     const existingUser = userMockHelpers.getById(userId);
@@ -126,5 +125,15 @@ export class UserStubBackend {
     await this.simulateDelay(400);
     console.log(accountId, data);
 
+  }
+
+  async enable(accountId: number, userId: number): Promise<void> {
+    await this.simulateDelay(400);
+    console.log(accountId, userId);
+  }
+
+  async disable(accountId: number, userId: number): Promise<void> {
+    await this.simulateDelay(400);
+    console.log(accountId, userId);
   }
 }

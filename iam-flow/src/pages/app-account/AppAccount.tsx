@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -8,9 +7,7 @@ import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
-import Alert from '@mui/material/Alert';
 import Tooltip from '@mui/material/Tooltip';
 import Toolbar from '@mui/material/Toolbar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -21,7 +18,6 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import SettingsIcon from '@mui/icons-material/Settings';
 import { accountService, authService } from '../../services';
 import type { AccountStats } from '../../models/response/AccountStats';
 import type { AccountGetResponse } from '../../models/response/AccountGetResponse';
@@ -29,7 +25,6 @@ import { toast } from 'react-toastify';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 
 export default function AppAccount() {
-  const navigate = useNavigate();
   const [accountData, setAccountData] = useState<AccountGetResponse>();
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -147,11 +142,6 @@ export default function AppAccount() {
 
     return (
       <Box>
-        {/* Success Alert */}
-        <Alert severity={accountData?.status === "ACTIVE" ? 'success' : 'warning'} sx={{ mb: 3 }}>
-          Account is {accountData?.status.toLocaleLowerCase()} and functioning normally.
-        </Alert>
-
         <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
           {/* Account Information */}
           <Box sx={{ flex: 2 }}>
@@ -408,13 +398,6 @@ export default function AppAccount() {
           <Typography variant="h6" gutterBottom>
             Account Details
           </Typography>
-          <Button
-            variant="outlined"
-            startIcon={<SettingsIcon />}
-            onClick={() => navigate('/app/account/settings')}
-          >
-            Settings
-          </Button>
         </Toolbar>
       </Paper>
 

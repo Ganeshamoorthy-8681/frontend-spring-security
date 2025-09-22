@@ -11,17 +11,6 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
 import Tooltip from '@mui/material/Tooltip';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import TextField from '@mui/material/TextField';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import FormHelperText from '@mui/material/FormHelperText';
-import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -35,41 +24,27 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import CloseIcon from '@mui/icons-material/Close';
-import IconButton from '@mui/material/IconButton';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import InsightsIcon from '@mui/icons-material/Insights';
+import { accountService, userService, roleService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import type { AccountStats } from '../../models/response/AccountStats';
+import type { UserResponse } from '../../models/response/UserResponse';
+import type { RoleResponse } from '../../models/response/RoleResponse';
 
 export default function AppDashboard() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [loading, setLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [dashboardMetrics, setDashboardMetrics] = useState<AccountStats | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
   
-  // Dialog states
-  const [createUserOpen, setCreateUserOpen] = useState(false);
-  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  
-  // Form states
-  const [newUser, setNewUser] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: '',
-    department: ''
-  });
-  
-  const [accountSettings, setAccountSettings] = useState({
-    accountName: 'TechCorp Solutions',
-    domain: 'techcorp.com',
-    description: 'A leading technology solutions provider specializing in cloud infrastructure and enterprise software development.',
-    plan: 'Enterprise',
-    timezone: 'UTC-5',
-    language: 'English'
-  });
-
-  // Form errors
-  const [userErrors, setUserErrors] = useState<{[key: string]: string}>({});
-  const [settingsErrors, setSettingsErrors] = useState<{[key: string]: string}>({});
+  // Insights data state
+  const [users, setUsers] = useState<UserResponse[]>([]);
+  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Simulate loading
   useEffect(() => {
@@ -81,118 +56,166 @@ export default function AppDashboard() {
 
   // Simulate metrics loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMetricsLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    const loadMetrics = async () => {
+      try {
+        setMetricsLoading(true);
+        setMetricsError(null);
+        
+        console.log('Loading dashboard metrics for account:', currentUser.accountId);
+        const stats = await accountService.getStats(currentUser.accountId);
+        console.log('Loaded dashboard metrics:', stats);
+        
+        setDashboardMetrics(stats);
+      } catch (error) {
+        console.error('Error loading dashboard metrics:', error);
+        setMetricsError('Failed to load dashboard metrics');
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
 
-  const dashboardMetrics = {
-    totalUsers: 127,
-    activeUsers: 95,
-    mfaEnabled: 89,
-    pendingInvitations: 12,
-    failedLogins: 3,
-    passwordExpiring: 8
-  };
-
-  const availableRoles = [
-    'Administrator',
-    'User Manager',
-    'Project Manager',
-    'Developer',
-    'Analyst',
-    'Viewer'
-  ];
-
-  const handleCreateUser = () => {
-    const errors: {[key: string]: string} = {};
-    
-    if (!newUser.firstName.trim()) errors.firstName = 'First name is required';
-    if (!newUser.lastName.trim()) errors.lastName = 'Last name is required';
-    if (!newUser.email.trim()) errors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(newUser.email)) errors.email = 'Email is invalid';
-    if (!newUser.role) errors.role = 'Role is required';
-    
-    setUserErrors(errors);
-    
-    if (Object.keys(errors).length === 0) {
-      // Simulate API call
-      setTimeout(() => {
-        setSnackbarMessage(`User ${newUser.firstName} ${newUser.lastName} created successfully!`);
-        setSnackbarOpen(true);
-        setCreateUserOpen(false);
-        setNewUser({ firstName: '', lastName: '', email: '', role: '', department: '' });
-      }, 500);
+    if (currentUser.accountId) {
+      loadMetrics();
     }
-  };
+  }, [currentUser.accountId]);
 
-  const handleSaveSettings = () => {
-    const errors: {[key: string]: string} = {};
-    
-    if (!accountSettings.accountName.trim()) errors.accountName = 'Account name is required';
-    if (!accountSettings.domain.trim()) errors.domain = 'Domain is required';
-    
-    setSettingsErrors(errors);
-    
-    if (Object.keys(errors).length === 0) {
-      // Simulate API call
-      setTimeout(() => {
-        setSnackbarMessage('Account settings updated successfully!');
-        setSnackbarOpen(true);
-        setAccountSettingsOpen(false);
-      }, 500);
+  // Load insights data (users and roles)
+  useEffect(() => {
+    const loadInsightsData = async () => {
+      try {
+        setInsightsLoading(true);
+        setInsightsError(null);
+        
+        console.log('Loading insights data for account:', currentUser.accountId);
+        
+        const [usersData, rolesData] = await Promise.all([
+          userService.list(currentUser.accountId),
+          roleService.list(currentUser.accountId)
+        ]);
+        
+        console.log('Loaded users:', usersData);
+        console.log('Loaded roles:', rolesData);
+        
+        setUsers(usersData);
+        setRoles(rolesData);
+      } catch (error) {
+        console.error('Error loading insights data:', error);
+        setInsightsError('Failed to load insights data');
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+
+    if (currentUser.accountId) {
+      loadInsightsData();
     }
-  };
+  }, [currentUser.accountId]);
 
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'createUser':
-        setCreateUserOpen(true);
+        navigate('/app/users/create');
         break;
       case 'manageRoles':
         navigate('/app/roles');
         break;
-      case 'accountSettings':
-        navigate('/app/account/settings');
-        break;
+      default:
+        console.log('Unknown action:', action);
     }
   };
 
-  const recentActivity = [
-    {
-      action: 'User "Sarah Chen" enabled MFA',
-      time: '2 minutes ago',
-      type: 'security',
-      severity: 'success'
-    },
-    {
-      action: 'New user "Alex Rodriguez" invited',
-      time: '1 hour ago',
-      type: 'user',
-      severity: 'info'
-    },
-    {
-      action: 'Role "Project Manager" permissions updated',
-      time: '3 hours ago',
-      type: 'role',
-      severity: 'info'
-    },
-    {
-      action: '5 failed login attempts detected',
-      time: '6 hours ago',
-      type: 'security',
-      severity: 'warning'
-    },
-    {
-      action: 'Password policy updated',
-      time: '1 day ago',
-      type: 'policy',
-      severity: 'info'
+  // Mock recent activity data (set empty to show "No activity" message)
+  const recentActivity: Array<{
+    action: string;
+    time: string;
+    type: string;
+    severity: string;
+  }> = [];
+  
+  // Uncomment below to show sample activities:
+  // const recentActivity = [
+  //   {
+  //     action: 'User "Sarah Chen" enabled MFA',
+  //     time: '2 minutes ago',
+  //     type: 'security',
+  //     severity: 'success'
+  //   },
+  //   {
+  //     action: 'New user "Alex Rodriguez" invited',
+  //     time: '1 hour ago',
+  //     type: 'user',
+  //     severity: 'info'
+  //   },
+  //   {
+  //     action: 'Role "Project Manager" permissions updated',
+  //     time: '3 hours ago',
+  //     type: 'role',
+  //     severity: 'info'
+  //   },
+  //   {
+  //     action: '5 failed login attempts detected',
+  //     time: '6 hours ago',
+  //     type: 'security',
+  //     severity: 'warning'
+  //   },
+  //   {
+  //     action: 'Password policy updated',
+  //     time: '1 day ago',
+  //     type: 'policy',
+  //     severity: 'info'
+  //   }
+  // ];
+
+
+
+  // Insights calculation functions
+  const calculateInsights = () => {
+    if (!users.length || !roles.length || !dashboardMetrics) {
+      return null;
     }
-  ];
 
+    // User engagement calculations
+    const activeUserPercent = Math.round((dashboardMetrics.activeUsers / dashboardMetrics.totalUsers) * 100);
+    const mfaAdoptionPercent = Math.round((dashboardMetrics.mfaEnabled / dashboardMetrics.totalUsers) * 100);
+    
+    // Role distribution
+    const avgUsersPerRole = Math.round(dashboardMetrics.totalUsers / roles.length);
+    
+    // Security insights
+    const securityScore = calculateSecurityScore();
+    
+    return {
+      activeUserPercent,
+      mfaAdoptionPercent,
+      avgUsersPerRole,
+      securityScore,
+      totalRoles: roles.length,
+      pendingInvites: dashboardMetrics.pendingInvitations,
+      failedLogins: dashboardMetrics.failedLoginAttempts
+    };
+  };
 
+  const calculateSecurityScore = () => {
+    if (!dashboardMetrics) return 0;
+    
+    let score = 100;
+    
+    // Deduct points for security issues
+    if (dashboardMetrics.failedLoginAttempts > 10) score -= 20;
+    else if (dashboardMetrics.failedLoginAttempts > 5) score -= 10;
+    
+    if (dashboardMetrics.passwordExpiring > 0) score -= 15;
+    
+    const mfaPercent = (dashboardMetrics.mfaEnabled / dashboardMetrics.totalUsers) * 100;
+    if (mfaPercent < 50) score -= 30;
+    else if (mfaPercent < 80) score -= 15;
+    
+    if (dashboardMetrics.inactiveUsers > dashboardMetrics.activeUsers) score -= 10;
+    
+    return Math.max(0, Math.min(100, score));
+  };
+
+  const insights = calculateInsights();
 
   const renderDashboardContent = () => {
     if (loading) {
@@ -246,10 +269,17 @@ export default function AppDashboard() {
     return (
       <Box>
         {/* Security Alert */}
-        {dashboardMetrics.failedLogins > 0 && (
+        {dashboardMetrics && dashboardMetrics.failedLoginAttempts > 0 && (
           <Alert severity="warning" sx={{ mb: 3 }}>
-            <strong>{dashboardMetrics.failedLogins} failed login attempts</strong> detected in the last 24 hours. 
+            <strong>{dashboardMetrics.failedLoginAttempts} failed login attempts</strong> detected in the last 24 hours. 
             Consider reviewing security logs.
+          </Alert>
+        )}
+
+        {/* Metrics Error Alert */}
+        {metricsError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {metricsError}
           </Alert>
         )}
 
@@ -267,7 +297,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="primary">
-                        {dashboardMetrics.totalUsers}
+                        {dashboardMetrics?.totalUsers || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Total Users
@@ -292,7 +322,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="success.main">
-                        {dashboardMetrics.activeUsers}
+                        {dashboardMetrics?.activeUsers || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Active Users
@@ -317,7 +347,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="info.main">
-                        {dashboardMetrics.mfaEnabled}
+                        {dashboardMetrics?.mfaEnabled || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         MFA Enabled
@@ -342,7 +372,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="warning.main">
-                        {dashboardMetrics.pendingInvitations}
+                        {dashboardMetrics?.pendingInvitations || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Pending Invites
@@ -367,7 +397,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="error.main">
-                        {dashboardMetrics.failedLogins}
+                        {dashboardMetrics?.failedLoginAttempts || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Failed Logins
@@ -392,7 +422,7 @@ export default function AppDashboard() {
                   ) : (
                     <>
                       <Typography variant="h4" color="warning.main">
-                        {dashboardMetrics.passwordExpiring}
+                        {dashboardMetrics?.passwordExpiring || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Passwords Expiring
@@ -406,6 +436,174 @@ export default function AppDashboard() {
           </Card>
         </Box>
 
+        {/* Insights Section */}
+        <Box sx={{ mt: 4, mb: 4 }}>
+          <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <InsightsIcon color="primary" />
+            Account Insights
+          </Typography>
+          
+          {insightsLoading || metricsLoading ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}>
+              {[...Array(4)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Skeleton variant="circular" width={60} height={60} sx={{ mx: 'auto', mb: 2 }} />
+                      <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto', mb: 1 }} />
+                      <Skeleton variant="text" width="60%" height={20} sx={{ mx: 'auto' }} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          ) : insightsError ? (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {insightsError}
+            </Alert>
+          ) : insights ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}>
+              {/* User Engagement */}
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ 
+                      width: 60, 
+                      height: 60, 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                      background: `conic-gradient(#4caf50 ${insights.activeUserPercent * 3.6}deg, #e0e0e0 0deg)`
+                    }}>
+                      <Box sx={{ 
+                        width: 45, 
+                        height: 45, 
+                        borderRadius: '50%', 
+                        bgcolor: 'background.paper',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Typography variant="caption" fontWeight="bold" color="success.main">
+                          {insights.activeUserPercent}%
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h6" color="text.primary" gutterBottom>
+                      User Engagement
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Active users rate
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Security Score */}
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ position: 'relative', mb: 2 }}>
+                      <ShieldIcon 
+                        sx={{ 
+                          fontSize: 60, 
+                          color: insights.securityScore >= 80 ? 'success.main' : 
+                                 insights.securityScore >= 60 ? 'warning.main' : 'error.main',
+                          mx: 'auto'
+                        }} 
+                      />
+                      <Typography 
+                        variant="caption" 
+                        fontWeight="bold"
+                        sx={{ 
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          color: insights.securityScore >= 80 ? 'success.main' : 
+                                 insights.securityScore >= 60 ? 'warning.main' : 'error.main'
+                        }}
+                      >
+                        {insights.securityScore}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h6" color="text.primary" gutterBottom>
+                      Security Score
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Overall security health
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* MFA Adoption */}
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ position: 'relative', mb: 2 }}>
+                      <VpnKeyIcon 
+                        sx={{ 
+                          fontSize: 60, 
+                          color: insights.mfaAdoptionPercent >= 80 ? 'success.main' : 
+                                 insights.mfaAdoptionPercent >= 50 ? 'warning.main' : 'error.main',
+                          mx: 'auto'
+                        }} 
+                      />
+                      <Chip
+                        label={`${insights.mfaAdoptionPercent}%`}
+                        size="small"
+                        color={insights.mfaAdoptionPercent >= 80 ? 'success' : 
+                               insights.mfaAdoptionPercent >= 50 ? 'warning' : 'error'}
+                        sx={{ position: 'absolute', top: -8, right: -8 }}
+                      />
+                    </Box>
+                    <Typography variant="h6" color="text.primary" gutterBottom>
+                      MFA Adoption
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Two-factor authentication
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Role Distribution */}
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <BarChartIcon sx={{ fontSize: 60, color: 'info.main', mb: 2 }} />
+                    <Typography variant="h6" color="text.primary" gutterBottom>
+                      Role Distribution
+                    </Typography>
+                    <Stack spacing={1} sx={{ mt: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Total Roles:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {insights.totalRoles}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Avg Users/Role:
+                        </Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {insights.avgUsersPerRole}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          ) : null}
+        </Box>
+
         {/* Main Content Grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
           {/* Recent Activity */}
@@ -415,35 +613,59 @@ export default function AppDashboard() {
               Recent Activity
             </Typography>
             <Stack spacing={2}>
-              {recentActivity.map((activity, index) => (
-                <Box key={index} sx={{ 
-                  p: 2, 
-                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff', 
-                  borderRadius: 1,
-                  borderLeft: 4,
-                  borderLeftColor: activity.severity === 'warning' ? 'warning.main' : 
-                                 activity.severity === 'success' ? 'success.main' : 'info.main'
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity, index) => (
+                  <Box key={index} sx={{ 
+                    p: 2, 
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff', 
+                    borderRadius: 1,
+                    borderLeft: 4,
+                    borderLeftColor: activity.severity === 'warning' ? 'warning.main' : 
+                                   activity.severity === 'success' ? 'success.main' : 'info.main'
+                  }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      {activity.severity === 'warning' && <WarningIcon color="warning" fontSize="small" />}
+                      {activity.severity === 'success' && <CheckCircleIcon color="success" fontSize="small" />}
+                      {activity.type === 'security' && activity.severity !== 'warning' && activity.severity !== 'success' && 
+                        <SecurityIcon color="info" fontSize="small" />}
+                      {activity.type === 'user' && <PeopleIcon color="info" fontSize="small" />}
+                      {activity.type === 'role' && <AdminPanelSettingsIcon color="info" fontSize="small" />}
+                      {activity.type === 'policy' && <SettingsIcon color="info" fontSize="small" />}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {activity.action}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <AccessTimeIcon fontSize="inherit" />
+                          {activity.time}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{
+                  p: 3,
+                  textAlign: 'center',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                  borderRadius: 2,
+                  border: (theme) => `1px dashed ${theme.palette.divider}`
                 }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    {activity.severity === 'warning' && <WarningIcon color="warning" fontSize="small" />}
-                    {activity.severity === 'success' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {activity.type === 'security' && activity.severity !== 'warning' && activity.severity !== 'success' && 
-                      <SecurityIcon color="info" fontSize="small" />}
-                    {activity.type === 'user' && <PeopleIcon color="info" fontSize="small" />}
-                    {activity.type === 'role' && <AdminPanelSettingsIcon color="info" fontSize="small" />}
-                    {activity.type === 'policy' && <SettingsIcon color="info" fontSize="small" />}
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {activity.action}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <AccessTimeIcon fontSize="inherit" />
-                        {activity.time}
-                      </Typography>
-                    </Box>
-                  </Stack>
+                  <AccessTimeIcon
+                    sx={{
+                      fontSize: 48,
+                      color: 'text.secondary',
+                      mb: 1
+                    }}
+                  />
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+                    No Recent Activity
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    System activity will appear here when available
+                  </Typography>
                 </Box>
-              ))}
+              )}
             </Stack>
           </Paper>
 
@@ -491,25 +713,7 @@ export default function AppDashboard() {
                   </Box>
                 </Button>
               </Tooltip>
-              
-              <Tooltip title="Configure account settings and policies">
-                <Button
-                  variant="outlined"
-                  startIcon={<SettingsIcon />}
-                  fullWidth
-                  sx={{ justifyContent: 'flex-start', p: 2 }}
-                  onClick={() => handleQuickAction('accountSettings')}
-                >
-                  <Box sx={{ textAlign: 'left', flex: 1 }}>
-                    <Typography variant="body2" fontWeight="medium">
-                      Account Settings
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Update account information
-                    </Typography>
-                  </Box>
-                </Button>
-              </Tooltip>
+          
             </Stack>
           </Paper>
         </Box>
@@ -536,189 +740,6 @@ export default function AppDashboard() {
       <div className="page-content">
         {renderDashboardContent()}
       </div>
-
-      {/* Create User Dialog */}
-      <Dialog open={createUserOpen} onClose={() => setCreateUserOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            Create New User
-            <IconButton onClick={() => setCreateUserOpen(false)} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="First Name"
-                value={newUser.firstName}
-                onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                error={!!userErrors.firstName}
-                helperText={userErrors.firstName}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Last Name"
-                value={newUser.lastName}
-                onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                error={!!userErrors.lastName}
-                helperText={userErrors.lastName}
-                fullWidth
-                required
-              />
-            </Stack>
-            
-            <TextField
-              label="Email Address"
-              type="email"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-              error={!!userErrors.email}
-              helperText={userErrors.email}
-              fullWidth
-              required
-            />
-            
-            <FormControl fullWidth required error={!!userErrors.role}>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={newUser.role}
-                label="Role"
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              >
-                {availableRoles.map((role) => (
-                  <MenuItem key={role} value={role}>
-                    {role}
-                  </MenuItem>
-                ))}
-              </Select>
-              {userErrors.role && <FormHelperText>{userErrors.role}</FormHelperText>}
-            </FormControl>
-            
-            <TextField
-              label="Department (Optional)"
-              value={newUser.department}
-              onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setCreateUserOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateUser}>
-            Create User
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Account Settings Dialog */}
-      <Dialog open={accountSettingsOpen} onClose={() => setAccountSettingsOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            Account Settings
-            <IconButton onClick={() => setAccountSettingsOpen(false)} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Account Name"
-              value={accountSettings.accountName}
-              onChange={(e) => setAccountSettings({ ...accountSettings, accountName: e.target.value })}
-              error={!!settingsErrors.accountName}
-              helperText={settingsErrors.accountName}
-              fullWidth
-              required
-            />
-            
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Domain"
-                value={accountSettings.domain}
-                onChange={(e) => setAccountSettings({ ...accountSettings, domain: e.target.value })}
-                error={!!settingsErrors.domain}
-                helperText={settingsErrors.domain}
-                fullWidth
-                required
-              />
-              <FormControl fullWidth>
-                <InputLabel>Plan</InputLabel>
-                <Select
-                  value={accountSettings.plan}
-                  label="Plan"
-                  onChange={(e) => setAccountSettings({ ...accountSettings, plan: e.target.value })}
-                >
-                  <MenuItem value="Starter">Starter</MenuItem>
-                  <MenuItem value="Professional">Professional</MenuItem>
-                  <MenuItem value="Enterprise">Enterprise</MenuItem>
-                </Select>
-              </FormControl>
-            </Stack>
-            
-            <TextField
-              label="Description"
-              value={accountSettings.description}
-              onChange={(e) => setAccountSettings({ ...accountSettings, description: e.target.value })}
-              multiline
-              rows={3}
-              fullWidth
-            />
-            
-            <Stack direction="row" spacing={2}>
-              <FormControl fullWidth>
-                <InputLabel>Timezone</InputLabel>
-                <Select
-                  value={accountSettings.timezone}
-                  label="Timezone"
-                  onChange={(e) => setAccountSettings({ ...accountSettings, timezone: e.target.value })}
-                >
-                  <MenuItem value="UTC-8">Pacific Time (UTC-8)</MenuItem>
-                  <MenuItem value="UTC-7">Mountain Time (UTC-7)</MenuItem>
-                  <MenuItem value="UTC-6">Central Time (UTC-6)</MenuItem>
-                  <MenuItem value="UTC-5">Eastern Time (UTC-5)</MenuItem>
-                  <MenuItem value="UTC+0">UTC</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Language</InputLabel>
-                <Select
-                  value={accountSettings.language}
-                  label="Language"
-                  onChange={(e) => setAccountSettings({ ...accountSettings, language: e.target.value })}
-                >
-                  <MenuItem value="English">English</MenuItem>
-                  <MenuItem value="Spanish">Spanish</MenuItem>
-                  <MenuItem value="French">French</MenuItem>
-                  <MenuItem value="German">German</MenuItem>
-                </Select>
-              </FormControl>
-            </Stack>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setAccountSettingsOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveSettings}>
-            Save Settings
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Success Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-        action={
-          <IconButton size="small" color="inherit" onClick={() => setSnackbarOpen(false)}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-      />
     </>
   );
 }
