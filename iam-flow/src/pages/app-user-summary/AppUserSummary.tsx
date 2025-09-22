@@ -16,30 +16,24 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import BusinessIcon from '@mui/icons-material/Business';
-import SecurityIcon from '@mui/icons-material/Security';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import DeleteIcon from '@mui/icons-material/Delete';
 import BlockIcon from '@mui/icons-material/Block';
 import { Menu, MenuItem, Toolbar } from '@mui/material';
-
-/** TODO: Needs to check for themes  */
-// const StyledUserSummaryContainer = styled(Paper)(({ theme }) => ({
-//   padding: theme.spacing(3),
-//   borderRadius: theme.shape.borderRadius,
-//   boxShadow: theme.shadows[3],
-//   backgroundColor: theme.palette.background.paper,
-//   [theme.breakpoints.up('md')]: {
-//     padding: theme.spacing(4),
-//   },
-// }));
+import { userService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { toast } from 'react-toastify';
+import type { UserResponse } from '../../models/response/UserResponse';
+import type { UserRole } from '../../models/request/UserCreateRequest';
 
 export default function AppUserSummary() {
   const navigate = useNavigate();
   const { userId } = useParams();
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserResponse>();
+  const currentUser = useCurrentUser();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -49,68 +43,33 @@ export default function AppUserSummary() {
 
   // Simulate loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    getUser();
   }, []);
 
-  // Mock user data
-  const userData = {
-    id: userId || '1',
-    firstName: 'Sarah',
-    lastName: 'Chen',
-    email: 'sarah.chen@techcorp.com',
-    phone: '+1-555-0234',
-    department: 'Engineering',
-    position: 'Senior Developer',
-    role: 'Developer',
-    roles: ['Admin', 'User'],
-    status: 'active',
-    isVerified: true,
-    mfaEnabled: true,
-    lastLogin: '2024-08-24T09:15:00Z',
-    createdAt: '2024-01-15T10:00:00Z',
-    permissions: [
-      'user.read',
-      'user.write',
-      'project.read',
-      'project.write',
-      'code.deploy'
-    ],
-    recentActivity: [
-      {
-        action: 'Logged in from Chrome on Windows',
-        timestamp: '2024-08-24T09:15:00Z',
-        type: 'login'
-      },
-      {
-        action: 'Updated profile information',
-        timestamp: '2024-08-23T16:30:00Z',
-        type: 'profile'
-      },
-      {
-        action: 'Enabled two-factor authentication',
-        timestamp: '2024-08-22T11:20:00Z',
-        type: 'security'
-      },
-      {
-        action: 'Password changed',
-        timestamp: '2024-08-20T14:45:00Z',
-        type: 'security'
-      }
-    ]
-  };
+  async function getUser() {
+    try {
+      setLoading(true);
+      const user = await userService.getById(currentUser?.accountId, Number(userId));
+      setUser(user);
+    } catch (e) {
+      toast.error("Unable to get the user now.");
+      console.log(e);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleBack = () => {
     navigate('/app/users');
   };
 
-  const handleRoleClick = (role: string) => {
+  const handleRoleClick = (role: UserRole) => {
+    if (role?.name == "ROOT") return;
     navigate(`/app/roles/${role}`);
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return;
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -120,18 +79,42 @@ export default function AppUserSummary() {
     });
   };
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'login':
-        return <PersonIcon fontSize="small" />;
-      case 'security':
-        return <SecurityIcon fontSize="small" />;
-      case 'profile':
-        return <EditIcon fontSize="small" />;
-      default:
-        return <AccessTimeIcon fontSize="small" />;
+  async function enableUser() {
+    try {
+      await userService.enable(currentUser.accountId, Number(user?.id));
+      setUser({ ...user!, status: 'ACTIVE' });
+      toast.success("User enabled successfully");
+    } catch (error) {
+      console.error("Error enabling user:", error);
+      toast.error("Failed to enable user");
     }
-  };
+    setAnchorEl(null); // Close menu
+  }
+
+  async function disableUser() {
+    try {
+      await userService.disable(currentUser.accountId, Number(user?.id));
+      setUser({ ...user!, status: 'INACTIVE' });
+      toast.success("User disabled successfully");
+    } catch (error) {
+      console.error("Error disabling user:", error);
+      toast.error("Failed to disable user");
+    }
+    setAnchorEl(null); // Close menu
+  }
+
+  // const getActivityIcon = (type: string) => {
+  //   switch (type) {
+  //     case 'login':
+  //       return <PersonIcon fontSize="small" />;
+  //     case 'security':
+  //       return <SecurityIcon fontSize="small" />;
+  //     case 'profile':
+  //       return <EditIcon fontSize="small" />;
+  //     default:
+  //       return <AccessTimeIcon fontSize="small" />;
+  //   }
+  // };
 
   return (
 
@@ -157,12 +140,18 @@ export default function AppUserSummary() {
               open={Boolean(anchorEl)}
               onClose={() => setAnchorEl(null)}
             >
-              <MenuItem onClick={() => navigate('/app/users/' + userData.id + '/edit')}>
+              <MenuItem onClick={() => navigate('/app/users/' + user?.id + '/edit')}>
                 <EditIcon fontSize="small" sx={{ mr: 2 }} /> EDIT
               </MenuItem>
-              <MenuItem onClick={() => navigate('/app/users/')}>
-                <BlockIcon fontSize="small" sx={{ mr: 2 }} /> DISABLE
-              </MenuItem>
+              {user?.status === "ACTIVE" ? (
+                <MenuItem onClick={disableUser}>
+                  <BlockIcon fontSize="small" sx={{ mr: 2 }} /> DISABLE
+                </MenuItem>
+              ) : (
+                <MenuItem onClick={enableUser}>
+                  <CheckCircleIcon fontSize="small" sx={{ mr: 2 }} /> ENABLE
+                </MenuItem>
+              )}
               <MenuItem onClick={() => navigate('/app/users/')}>
                 <DeleteIcon fontSize="small" color='error' sx={{ mr: 2 }} /> DELETE
               </MenuItem>
@@ -221,7 +210,7 @@ export default function AppUserSummary() {
                       First Name
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {userData.firstName}
+                      {user?.firstName}
                     </Typography>
                   </Box>
                   <Box>
@@ -229,7 +218,7 @@ export default function AppUserSummary() {
                       Last Name
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {userData.lastName}
+                      {user?.lastName}
                     </Typography>
                   </Box>
                   <Box>
@@ -239,51 +228,33 @@ export default function AppUserSummary() {
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <EmailIcon fontSize="small" color="action" />
                       <Typography variant="body1">
-                        {userData.email}
+                        {user?.email}
                       </Typography>
-                      {userData.isVerified && (
+                      {user?.status === "ACTIVE" ? (
                         <Tooltip title="Email verified">
                           <CheckCircleIcon color="success" fontSize="small" />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Email not verified">
+                          <ErrorIcon color="warning" fontSize="small" />
                         </Tooltip>
                       )}
                     </Stack>
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Phone Number
-                    </Typography>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <PhoneIcon fontSize="small" color="action" />
-                      <Typography variant="body1">
-                        {userData.phone}
-                      </Typography>
-                    </Stack>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Department
-                    </Typography>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <BusinessIcon fontSize="small" color="action" />
-                      <Typography variant="body1">
-                        {userData.department}
-                      </Typography>
-                    </Stack>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Position
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {userData.position}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
                       Last Login
                     </Typography>
                     <Typography variant="body1">
-                      {formatDateTime(userData.lastLogin)}
+                      {formatDateTime(user?.lastLogin)}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Current Login
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDateTime(user?.currentLogin)}
                     </Typography>
                   </Box>
                 </Box>
@@ -294,13 +265,35 @@ export default function AppUserSummary() {
                   Roles
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {userData.roles.map((role) => (
-                    <Chip onClick={() => handleRoleClick(role)}
-                      key={role}
-                      label={role}
-                      variant="outlined"
-                      size="small"
-                    />
+                  {user?.roles.map((role) => (
+                    role.name === "ROOT" ? (
+                      <Tooltip
+                        key={role.id}
+                        title="Account Owner - System role with full privileges"
+                        arrow
+                      >
+                        <Chip
+                          label="OWNER"
+                          variant="outlined"
+                          size="small"
+                          color="warning"
+                        />
+                      </Tooltip>
+                    ) : (
+                      <Chip
+                        onClick={() => handleRoleClick(role)}
+                        key={role.id}
+                        label={role.name}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: 'action.hover'
+                          }
+                        }}
+                      />
+                    )
                   ))}
                 </Box>
               </Paper>
@@ -317,7 +310,7 @@ export default function AppUserSummary() {
                   <Stack spacing={2}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="primary">
-                        {userData.permissions.length}
+                        {/* {user.permissions.length} */} 0
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Permissions
@@ -326,7 +319,7 @@ export default function AppUserSummary() {
                     <Divider />
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="success.main">
-                        {userData.recentActivity.length}
+                        {/* {userData.recentActivity.length} */} 0
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Recent Activities
@@ -342,7 +335,7 @@ export default function AppUserSummary() {
                   Recent Activity
                 </Typography>
                 <Stack spacing={2}>
-                  {userData.recentActivity.map((activity, index) => (
+                  {/* {userData.recentActivity.map((activity, index) => (
                     <Box key={index} sx={{
                       p: 2,
                       bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff',
@@ -363,7 +356,31 @@ export default function AppUserSummary() {
                         </Box>
                       </Stack>
                     </Box>
-                  ))}
+                  ))} */}
+
+                  {/* No recent activity message */}
+                  <Box sx={{
+                    p: 3,
+                    textAlign: 'center',
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                    borderRadius: 2,
+                    border: (theme) => `1px dashed ${theme.palette.divider}`
+                  }}>
+                    <AccessTimeIcon
+                      sx={{
+                        fontSize: 48,
+                        color: 'text.secondary',
+                        mb: 1
+                      }}
+                    />
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+                      No Recent Activity
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      User activity will appear here when available
+                    </Typography>
+                  </Box>
+
                 </Stack>
               </Paper>
             </Stack>

@@ -82,9 +82,24 @@ export class StubBackendService {
         return this.prepareAxiosResponse(config, response);
       }
 
-      if (this.matchesPattern(normalizedUrl, 'api/v1/accounts/{accountId}/users/list')) {
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/users/list')) {
         const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}', 'accountId');
         const response = await this.userBackend.getUsers(parseInt(accountId));
+        return this.prepareAxiosResponse(config, response);
+      }
+
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}/enable')) {
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}/enable', 'accountId');
+        const userId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}', 'userId');
+        const response = await this.userBackend.enable(parseInt(accountId), parseInt(userId));
+        return this.prepareAxiosResponse(config, response);
+      }
+
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}/disable')) {
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}/disable', 'accountId');
+        const userId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/users/{userId}', 'userId');
+
+        const response = await this.userBackend.disable(parseInt(accountId), parseInt(userId));
         return this.prepareAxiosResponse(config, response);
       }
 
@@ -136,8 +151,8 @@ export class StubBackendService {
       }
 
       if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles/{roleId}')) {
-        const accountId = this.extractPathParam(normalizedUrl, '/accounts/{accountId}/roles/{roleId}', 'accountId');
-        const roleId = this.extractPathParam(normalizedUrl, '/accounts/{accountId}/roles/{roleId}', 'roleId');
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles/{roleId}', 'accountId');
+        const roleId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles/{roleId}', 'roleId');
 
         if (normalizedMethod === 'GET') {
           const response = await this.roleBackend.getRole(parseInt(accountId), parseInt(roleId));
@@ -167,7 +182,7 @@ export class StubBackendService {
 
       if (normalizedUrl === '/api/v1/otp/validate') {
         const request = data as OtpValidationRequest;
-        const response = await this.otpBackend.verifyOtp(request.email, request.otp);
+        const response = await this.otpBackend.validateOtp(request.email, request.otp);
         return this.prepareAxiosResponse(config, response);
       }
 

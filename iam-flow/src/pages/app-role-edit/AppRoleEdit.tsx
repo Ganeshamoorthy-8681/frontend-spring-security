@@ -16,33 +16,15 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { RoleForm } from '../../components';
+import { roleService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import type { RoleEditForm } from '../../models/form/RoleEditForm';
-
-// Mock role data - replace with actual API call
-const mockRoleData = {
-  '1': {
-    id: '1',
-    name: 'Account Owner',
-    description: 'Full access to all account features and settings',
-    permissions: ['admin.full']
-  },
-  '2': {
-    id: '2',
-    name: 'Admin',
-    description: 'Administrative access with user and role management',
-    permissions: ['users.read', 'users.write', 'users.delete', 'roles.read', 'roles.write', 'account.read']
-  },
-  '3': {
-    id: '3',
-    name: 'User Manager',
-    description: 'Can manage users but not roles or account settings',
-    permissions: ['users.read', 'users.write', 'account.read']
-  }
-};
+import type { RoleCreateRequest } from '../../models/request/RoleCreateRequest';
 
 export default function AppRoleEdit() {
   const navigate = useNavigate();
   const { roleId } = useParams<{ roleId: string; }>();
+  const currentUser = useCurrentUser();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -60,22 +42,26 @@ export default function AppRoleEdit() {
         setIsLoading(true);
         setLoadError(null);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!roleId) {
+          setLoadError('Role ID is required');
+          return;
+        }
 
-        const roleData = mockRoleData[roleId as keyof typeof mockRoleData];
+        console.log('Loading role data for ID:', roleId);
+        const response = await roleService.getById(currentUser.accountId, Number(roleId));
+        console.log('Loaded role data:', response);
 
-        if (!roleData) {
+        if (!response) {
           setLoadError('Role not found');
           return;
         }
 
         // Populate form with existing data
         reset({
-          id: roleData.id,
-          name: roleData.name,
-          description: roleData.description,
-          permissions: roleData.permissions
+          id: response.id.toString(),
+          name: response.name,
+          description: response.description,
+          permissions: response.permissions.map(p => p.name)
         });
 
       } catch (error) {
@@ -89,7 +75,7 @@ export default function AppRoleEdit() {
     if (roleId) {
       loadRoleData();
     }
-  }, [roleId, reset]);
+  }, [roleId, reset, currentUser.accountId]);
 
   const handleBack = () => {
 
@@ -101,11 +87,18 @@ export default function AppRoleEdit() {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      // Simulate API call
       console.log('Updating role:', data);
 
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Prepare the update request
+      const updateRequest: Partial<RoleCreateRequest> = {
+        name: data.name,
+        description: data.description,
+        // Note: permissions update may require a different approach
+        // depending on how the backend handles permission IDs vs names
+      };
+
+      const response = await roleService.update(currentUser.accountId, Number(roleId), updateRequest);
+      console.log('Role updated successfully:', response);
 
       // Show success message and navigate back
       alert('Role updated successfully!');

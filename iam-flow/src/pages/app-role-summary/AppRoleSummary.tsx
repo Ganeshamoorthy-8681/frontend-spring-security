@@ -19,11 +19,17 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DeleteIcon from '@mui/icons-material/Delete';
 import BlockIcon from '@mui/icons-material/Block';
 import { Menu, MenuItem, Toolbar } from '@mui/material';
+import { roleService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { toast } from 'react-toastify';
+import type { RoleResponse } from '../../models/response/RoleResponse';
 
 export default function AppRoleSummary() {
   const navigate = useNavigate();
   const { roleId } = useParams();
+  const currentUser = useCurrentUser();
   const [loading, setLoading] = useState(true);
+  const [roleData, setRoleData] = useState<RoleResponse | null>(null);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -31,99 +37,55 @@ export default function AppRoleSummary() {
     setAnchorEl(event.currentTarget);
   };
 
-  // Simulate loading
+  // Load role data from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Mock role data based on roleId
-  const getRoleData = (id: string) => {
-    const roles = {
-      '1': {
-        id: '1',
-        name: 'Account Owner',
-        description: 'Full access to all account features and settings',
-        permissions: ['admin.full'],
-        userCount: 1,
-        isSystemRole: true,
-        createdAt: '2024-01-15T09:00:00Z',
-        updatedAt: '2024-01-15T09:00:00Z',
-        createdBy: 'System',
-        category: 'Administrative'
-      },
-      '2': {
-        id: '2',
-        name: 'Admin',
-        description: 'Administrative access with user and role management',
-        permissions: ['users.read', 'users.write', 'users.delete', 'roles.read', 'roles.write', 'account.read'],
-        userCount: 2,
-        isSystemRole: false,
-        createdAt: '2024-01-20T10:30:00Z',
-        updatedAt: '2024-02-15T14:20:00Z',
-        createdBy: 'John Doe',
-        category: 'Administrative'
-      },
-      '3': {
-        id: '3',
-        name: 'User Manager',
-        description: 'Can manage users but not roles or account settings',
-        permissions: ['users.read', 'users.write', 'account.read'],
-        userCount: 1,
-        isSystemRole: false,
-        createdAt: '2024-02-01T11:00:00Z',
-        updatedAt: '2024-02-01T11:00:00Z',
-        createdBy: 'Sarah Chen',
-        category: 'Management'
+    const loadRole = async () => {
+      if (!roleId || !currentUser?.accountId) return;
+      
+      try {
+        setLoading(true);
+        const role = await roleService.getById(currentUser.accountId, Number(roleId));
+        setRoleData(role);
+      } catch (error) {
+        console.error('Error loading role:', error);
+        toast.error('Failed to load role data');
+        navigate('/app/roles');
+      } finally {
+        setLoading(false);
       }
     };
-    return roles[id as keyof typeof roles] || roles['2'];
-  };
 
-  const roleData = getRoleData(roleId || '2');
+    loadRole();
+  }, [roleId, currentUser?.accountId, navigate]);
 
-  // Mock permissions detail
-  const permissionDetails = [
-    { id: 'users.read', name: 'Read Users', description: 'View user information', category: 'Users' },
-    { id: 'users.write', name: 'Write Users', description: 'Create and edit users', category: 'Users' },
-    { id: 'users.delete', name: 'Delete Users', description: 'Delete user accounts', category: 'Users' },
-    { id: 'roles.read', name: 'Read Roles', description: 'View role information', category: 'Roles' },
-    { id: 'roles.write', name: 'Write Roles', description: 'Create and edit roles', category: 'Roles' },
-    { id: 'account.read', name: 'Read Account', description: 'View account information', category: 'Account' },
-    { id: 'admin.full', name: 'Full Admin Access', description: 'Complete system administration', category: 'Admin' }
-  ];
-
-  const rolePermissions = permissionDetails.filter(p => roleData.permissions.includes(p.id));
-
-  // Mock recent role activity
-  const recentActivity = [
-    {
-      action: 'Role permissions updated',
-      timestamp: '2024-08-24T09:15:00Z',
-      type: 'permission',
-      user: 'John Doe'
-    },
-    {
-      action: 'User assigned to role',
-      timestamp: '2024-08-23T16:30:00Z',
-      type: 'assignment',
-      user: 'Sarah Chen'
-    },
-    {
-      action: 'Role description updated',
-      timestamp: '2024-08-22T11:20:00Z',
-      type: 'update',
-      user: 'Admin User'
-    },
-    {
-      action: 'Role created',
-      timestamp: roleData.createdAt,
-      type: 'creation',
-      user: roleData.createdBy
-    }
-  ];
+  // Mock recent role activity (keeping this as static data for now)
+  const recentActivity: Array<{
+    action: string;
+    timestamp: string;
+    type: string;
+    user: string;
+  }> = [];
+  // Uncomment below to show sample activity:
+  // const recentActivity = [
+  //   {
+  //     action: 'Role permissions updated',
+  //     timestamp: '2024-08-24T09:15:00Z',
+  //     type: 'permission',
+  //     user: 'System'
+  //   },
+  //   {
+  //     action: 'User assigned to role',
+  //     timestamp: '2024-08-23T16:30:00Z',
+  //     type: 'assignment',
+  //     user: 'Admin'
+  //   },
+  //   {
+  //     action: 'Role description updated',
+  //     timestamp: '2024-08-22T11:20:00Z',
+  //     type: 'update',
+  //     user: 'Admin User'
+  //   }
+  // ];
 
   const handleBack = () => {
     navigate('/app/roles');
@@ -176,19 +138,15 @@ export default function AppRoleSummary() {
               open={Boolean(anchorEl)}
               onClose={() => setAnchorEl(null)}
             >
-              <MenuItem onClick={() => navigate('/app/roles/' + roleData.id + '/edit')}>
+              <MenuItem onClick={() => roleData && navigate('/app/roles/' + roleData.id + '/edit')}>
                 <EditIcon fontSize="small" sx={{ mr: 2 }} /> EDIT
               </MenuItem>
-              {!roleData.isSystemRole && (
-                <>
-                  <MenuItem onClick={() => navigate('/app/roles/')}>
-                    <BlockIcon fontSize="small" sx={{ mr: 2 }} /> DISABLE
-                  </MenuItem>
-                  <MenuItem onClick={() => navigate('/app/roles/')}>
-                    <DeleteIcon fontSize="small" color='error' sx={{ mr: 2 }} /> DELETE
-                  </MenuItem>
-                </>
-              )}
+              <MenuItem onClick={() => navigate('/app/roles/')}>
+                <BlockIcon fontSize="small" sx={{ mr: 2 }} /> DISABLE
+              </MenuItem>
+              <MenuItem onClick={() => navigate('/app/roles/')}>
+                <DeleteIcon fontSize="small" color='error' sx={{ mr: 2 }} /> DELETE
+              </MenuItem>
             </Menu>
           </div>
         </Toolbar>
@@ -242,15 +200,15 @@ export default function AppRoleSummary() {
                       Role Name
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {roleData.name}
+                      {roleData?.name || 'Unknown Role'}
                     </Typography>
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Category
+                      Account ID
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {roleData.category}
+                      {roleData?.accountId || 'N/A'}
                     </Typography>
                   </Box>
                   <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
@@ -258,15 +216,15 @@ export default function AppRoleSummary() {
                       Description
                     </Typography>
                     <Typography variant="body1">
-                      {roleData.description}
+                      {roleData?.description || 'No description available'}
                     </Typography>
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Users Assigned
+                      Role ID
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {roleData.userCount} users
+                      {roleData?.id || 'N/A'}
                     </Typography>
                   </Box>
                   <Box>
@@ -274,27 +232,11 @@ export default function AppRoleSummary() {
                       Role Type
                     </Typography>
                     <Chip
-                      label={roleData.isSystemRole ? 'System Role' : 'Custom Role'}
+                      label="Custom Role"
                       size="small"
-                      color={roleData.isSystemRole ? 'warning' : 'primary'}
+                      color="primary"
                       variant="outlined"
                     />
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Created By
-                    </Typography>
-                    <Typography variant="body1">
-                      {roleData.createdBy}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Last Updated
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatDateTime(roleData.updatedAt)}
-                    </Typography>
                   </Box>
                 </Box>
               </Paper>
@@ -302,15 +244,15 @@ export default function AppRoleSummary() {
               {/* Permissions */}
               <Paper elevation={2} sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ mb: 3 }}>
-                  Permissions ({roleData.permissions.length})
+                  Permissions ({roleData?.permissions?.length || 0})
                 </Typography>
                 
                 {/* Professional Chip Design */}
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {roleData.permissions.map((permission, index) => (
+                  {roleData?.permissions?.map((permission, index) => (
                     <Chip
                       key={index}
-                      label={permission}
+                      label={permission.name}
                       variant="outlined"
                       size="small"
                       color="primary"
@@ -319,7 +261,7 @@ export default function AppRoleSummary() {
                         fontSize: '0.75rem'
                       }}
                     />
-                  ))}
+                  )) || <Typography variant="body2" color="text.secondary">No permissions assigned</Typography>}
                 </Box>
               </Paper>
             </Stack>
@@ -335,7 +277,7 @@ export default function AppRoleSummary() {
                   <Stack spacing={2}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="primary">
-                        {rolePermissions.length}
+                        {roleData?.permissions?.length || 0}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Permissions
@@ -344,7 +286,7 @@ export default function AppRoleSummary() {
                     <Box sx={{ height: 1, bgcolor: 'divider' }} />
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h4" color="success.main">
-                        {roleData.userCount}
+                        N/A
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Users Assigned
@@ -360,29 +302,53 @@ export default function AppRoleSummary() {
                   Recent Activity
                 </Typography>
                 <Stack spacing={2}>
-                  {recentActivity.map((activity, index) => (
-                    <Box key={index} sx={{
-                      p: 2,
-                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff',
-                      borderRadius: 1,
-                      borderLeft: 3,
-                      borderLeftColor: activity.type === 'permission' ? 'warning.main' : 
-                                     activity.type === 'assignment' ? 'success.main' : 'info.main'
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((activity, index) => (
+                      <Box key={index} sx={{
+                        p: 2,
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : '#ffffff',
+                        borderRadius: 1,
+                        borderLeft: 3,
+                        borderLeftColor: activity.type === 'permission' ? 'warning.main' : 
+                                       activity.type === 'assignment' ? 'success.main' : 'info.main'
+                      }}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          {getActivityIcon(activity.type)}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" fontWeight="medium">
+                              {activity.action}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTimeIcon fontSize="inherit" />
+                              {formatDateTime(activity.timestamp)} by {activity.user}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    ))
+                  ) : (
+                    <Box sx={{
+                      p: 3,
+                      textAlign: 'center',
+                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                      borderRadius: 2,
+                      border: (theme) => `1px dashed ${theme.palette.divider}`
                     }}>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        {getActivityIcon(activity.type)}
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight="medium">
-                            {activity.action}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <AccessTimeIcon fontSize="inherit" />
-                            {formatDateTime(activity.timestamp)} by {activity.user}
-                          </Typography>
-                        </Box>
-                      </Stack>
+                      <AccessTimeIcon
+                        sx={{
+                          fontSize: 48,
+                          color: 'text.secondary',
+                          mb: 1
+                        }}
+                      />
+                      <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+                        No Recent Activity
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Role activity will appear here when available
+                      </Typography>
                     </Box>
-                  ))}
+                  )}
                 </Stack>
               </Paper>
             </Stack>

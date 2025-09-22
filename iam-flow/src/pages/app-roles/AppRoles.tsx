@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -21,136 +21,39 @@ import AddIcon from '@mui/icons-material/Add';
 import SecurityIcon from '@mui/icons-material/Security';
 import SearchIcon from '@mui/icons-material/Search';
 import { TablePagination } from '../../components';
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  userCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Mock data - replace with actual API calls
-const mockRoles: Role[] = [
-  {
-    id: '1',
-    name: 'Account Owner',
-    description: 'Full access to all account features and settings',
-    permissions: ['admin.full'],
-    userCount: 1,
-    createdAt: '2024-01-15T09:00:00Z',
-    updatedAt: '2024-01-15T09:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Admin',
-    description: 'Administrative access with user and role management',
-    permissions: ['users.read', 'users.write', 'users.delete', 'roles.read', 'roles.write', 'account.read'],
-    userCount: 2,
-    createdAt: '2024-01-20T10:30:00Z',
-    updatedAt: '2024-02-15T14:20:00Z'
-  },
-  {
-    id: '3',
-    name: 'User Manager',
-    description: 'Can manage users but not roles or account settings',
-    permissions: ['users.read', 'users.write', 'account.read'],
-    userCount: 1,
-    createdAt: '2024-02-01T11:00:00Z',
-    updatedAt: '2024-02-01T11:00:00Z'
-  },
-  {
-    id: '4',
-    name: 'User',
-    description: 'Basic user access with read-only permissions',
-    permissions: ['account.read'],
-    userCount: 8,
-    createdAt: '2024-01-15T09:00:00Z',
-    updatedAt: '2024-01-15T09:00:00Z'
-  },
-  {
-    id: '5',
-    name: 'Content Manager',
-    description: 'Can manage content and moderate discussions',
-    permissions: ['users.read', 'account.read'],
-    userCount: 3,
-    createdAt: '2024-02-10T10:00:00Z',
-    updatedAt: '2024-02-10T10:00:00Z'
-  },
-  {
-    id: '6',
-    name: 'Support Agent',
-    description: 'Customer support access with limited user management',
-    permissions: ['users.read', 'account.read'],
-    userCount: 5,
-    createdAt: '2024-03-01T14:30:00Z',
-    updatedAt: '2024-03-01T14:30:00Z'
-  },
-  {
-    id: '7',
-    name: 'Data Analyst',
-    description: 'Read-only access to analytics and reporting',
-    permissions: ['account.read'],
-    userCount: 2,
-    createdAt: '2024-03-15T09:45:00Z',
-    updatedAt: '2024-03-15T09:45:00Z'
-  },
-  {
-    id: '8',
-    name: 'Marketing Team',
-    description: 'Access to marketing tools and user communication',
-    permissions: ['users.read', 'account.read'],
-    userCount: 4,
-    createdAt: '2024-04-01T11:15:00Z',
-    updatedAt: '2024-04-01T11:15:00Z'
-  },
-  {
-    id: '9',
-    name: 'Developer',
-    description: 'Technical access for development and integration',
-    permissions: ['users.read', 'roles.read', 'account.read'],
-    userCount: 6,
-    createdAt: '2024-04-15T13:20:00Z',
-    updatedAt: '2024-04-15T13:20:00Z'
-  },
-  {
-    id: '10',
-    name: 'Quality Assurance',
-    description: 'Testing access with limited modification rights',
-    permissions: ['users.read', 'account.read'],
-    userCount: 3,
-    createdAt: '2024-05-01T16:00:00Z',
-    updatedAt: '2024-05-01T16:00:00Z'
-  },
-  {
-    id: '11',
-    name: 'Financial Analyst',
-    description: 'Access to financial data and reporting features',
-    permissions: ['account.read'],
-    userCount: 2,
-    createdAt: '2024-05-15T10:30:00Z',
-    updatedAt: '2024-05-15T10:30:00Z'
-  },
-  {
-    id: '12',
-    name: 'Project Manager',
-    description: 'Project coordination access with team visibility',
-    permissions: ['users.read', 'roles.read', 'account.read'],
-    userCount: 4,
-    createdAt: '2024-06-01T08:45:00Z',
-    updatedAt: '2024-06-01T08:45:00Z'
-  }
-];
+import { roleService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { toast } from 'react-toastify';
+import type { RoleResponse } from '../../models/response/RoleResponse';
 
 export default function AppRoles() {
   const navigate = useNavigate();
-  const [roles] = useState(mockRoles);
-  const [loading] = useState(false);
+  const currentUser = useCurrentUser();
+  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Load roles from API
+  useEffect(() => {
+    const loadRoles = async () => {
+      if (!currentUser?.accountId) return;
+      
+      try {
+        setLoading(true);
+        const rolesData = await roleService.list(currentUser.accountId);
+        setRoles(rolesData);
+      } catch (error) {
+        console.error('Error loading roles:', error);
+        toast.error('Failed to load roles');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRoles();
+  }, [currentUser?.accountId]);
 
   // Filter roles based on search
   const filteredRoles = roles.filter(role =>
@@ -173,23 +76,12 @@ export default function AppRoles() {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
-  const handleViewRole = (role: Role) => {
+  const handleViewRole = (role: RoleResponse) => {
     navigate(`/app/roles/${role.id}`);
   };
 
   const handleCreateRole = () => {
     navigate('/app/roles/create');
-  };
-
-  const formatDateTime = (dateString: string) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const renderRolesList = () => (
@@ -240,7 +132,7 @@ export default function AppRoles() {
                   <TableCell><strong>Role Name</strong></TableCell>
                   <TableCell><strong>Description</strong></TableCell>
                   <TableCell><strong>Permissions</strong></TableCell>
-                  <TableCell><strong>Last Updated</strong></TableCell>
+                  <TableCell><strong>Role ID</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -282,7 +174,8 @@ export default function AppRoles() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {formatDateTime(role.updatedAt)}
+                        {/* Role API doesn't provide timestamps, could show ID or other info */}
+                        ID: {role.id}
                       </Typography>
                     </TableCell>
                   </TableRow>

@@ -20,15 +20,20 @@ import { FormProvider, PersonalStep } from '../app-account-create/components';
 import type { PersonalFormStep } from '../../models/form/PersonalFormStep';
 import { useForm } from 'react-hook-form';
 import RoleStep from '../../components/RoleStep';
-import type { UserModel } from '../../models/core/User';
+import { userService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { toast } from 'react-toastify';
+import type { UserResponse } from '../../models/response/UserResponse';
+import type { UserUpdateRequest } from '../../models/request/UserUpdateRequest';
 
 export default function AppUserEdit() {
   const navigate = useNavigate();
   const { userId } = useParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const currentUser = useCurrentUser();
 
-  const [userData, setUserData] = useState<UserModel | null>(null);
+  const [userData, setUserData] = useState<UserResponse | null>(null);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
@@ -47,50 +52,64 @@ export default function AppUserEdit() {
     }
   });
 
-  // Simulate loading user data
+  // Load user data from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // Mock user data
-      const mockUserData = {
-        id: '1',
-        firstName: 'Sarah',
-        middleName: 'J.',
-        lastName: 'Chen',
-        email: 'sarah.chen@techcorp.com',
-        phone: '+1-555-0234',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        role: 'Developer',
-        status: 'active',
-        mfaEnabled: true,
-        isVerified: true,
-        roles: ['Developer'],
-        description: 'A passionate developer.'
-      };
+    const loadUser = async () => {
+      if (!userId || !currentUser?.accountId) return;
+      
+      try {
+        setLoading(true);
+        const user = await userService.getById(currentUser.accountId, Number(userId));
+        setUserData(user);
+        
+        // Set form values when user data loads
+        formMethods.reset({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          personalDescription: user.description,
+          roles: user.roles.map(role => role.id.toString())
+        });
+      } catch (error) {
+        console.error('Error loading user:', error);
+        toast.error('Failed to load user data');
+        navigate('/app/users');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setUserData(mockUserData);
-      // Set form values when user data loads
-      formMethods.reset({
-        firstName: mockUserData.firstName,
-        lastName: mockUserData.lastName,
-        email: mockUserData.email,
-        roles: mockUserData.roles
-      });
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [userId, formMethods]);
+    loadUser();
+  }, [userId, currentUser?.accountId, formMethods, navigate]);
 
 
   const handleSave = async () => {
     const isValid = await formMethods.trigger();
-    if (isValid) {
+    if (isValid && userData && currentUser?.accountId) {
       setSaving(true);
-      // Simulate API call
-      setTimeout(() => {
-        setSaving(false);
+      try {
+        const formData = formMethods.getValues();
+        const updateRequest: UserUpdateRequest = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          middleName: '',
+          roleIds: formData.roles.map(roleId => Number(roleId))
+        };
+
+        await userService.update(currentUser.accountId, Number(userId), updateRequest);
         setSnackbarOpen(true);
-      }, 3000);
+        toast.success('User updated successfully!');
+        
+        // Optionally navigate back to user summary
+        setTimeout(() => {
+          navigate(`/app/users/${userId}`);
+        }, 1500);
+      } catch (error) {
+        console.error('Error updating user:', error);
+        toast.error('Failed to update user');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -156,7 +175,7 @@ export default function AppUserEdit() {
                       </Typography>
                     </Stack>
                     <Stack>
-                      <PersonalStep mode='edit' userData={userData} />
+                      <PersonalStep mode='edit' />
                     </Stack>
                   </Paper>
                   <Paper elevation={2} sx={{ p: 3 }}>
@@ -186,16 +205,16 @@ export default function AppUserEdit() {
                       </Typography>
                       <Chip
                         label={userData?.status}
-                        color={userData?.status === 'active' ? 'success' : 'default'}
+                        color={userData?.status === 'ACTIVE' ? 'success' : 'default'}
                         size="small"
                       />
                     </Box>
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Department
+                        Email
                       </Typography>
                       <Typography variant="body1" fontWeight="medium">
-                        {userData?.department || 'Not assigned'}
+                        {userData?.email || 'Not provided'}
                       </Typography>
                     </Box>
                   </Stack>

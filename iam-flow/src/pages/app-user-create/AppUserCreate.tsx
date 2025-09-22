@@ -7,6 +7,8 @@ import RoleStep from "../../components/RoleStep";
 import { userService, type UserCreateRequest } from "../../services";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import type { UserRole } from "../../models/request/UserCreateRequest";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router";
 
 const stepsConfig = [
   {
@@ -25,6 +27,7 @@ export default function AppUserCreate() {
 
   const [activeStep, setActiveStep] = useState(0);
 
+  const navigate = useNavigate();
   const currentUser = useCurrentUser();
 
   const formMethods = useForm<UserCreateForm>({
@@ -54,10 +57,11 @@ export default function AppUserCreate() {
   const handleFinish: SubmitHandler<UserCreateForm> = async (data) => {
     try {
       await createUser(data);
-      alert('User created successfully!');
+      toast.success("User has been created.");
+      navigate("/app/users");
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user. Please try again.');
+      toast.error("User has been created.");
     }
   };
 

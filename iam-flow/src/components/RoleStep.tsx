@@ -84,16 +84,32 @@ export default function RoleStep() {
                 disabled={loading}
                 input={<OutlinedInput label="Roles" />}
                 renderValue={(selected) => {
-                  if (!Array.isArray(selected)) return null;
+                  if (!Array.isArray(selected) || roles.length === 0) return null;
                   return (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {selected.map((roleId) => {
                         if (!roleId) return null;
-                        const role = roles.find(r => r.id.toString() === roleId);
+                        // Find role by matching both string and number formats
+                        const role = roles.find(r => 
+                          r.id.toString() === roleId.toString() || 
+                          r.id === Number(roleId)
+                        );
+                        const roleName = role?.name;
+                        
+                        // Debug logging to help identify issues
+                        if (!role && !loading) {
+                          console.warn(`Role not found for ID: ${roleId}`, {
+                            searchId: roleId,
+                            availableRoles: roles.map(r => ({ id: r.id, name: r.name }))
+                          });
+                        }
+                        
                         return (
                           <Chip
                             key={roleId}
-                            label={role?.name || roleId}
+                            label={roleName || `Role ${roleId}`}
+                            variant="outlined"
+                            size="small"
                             onDelete={() => {
                               const newValue = (field.value || []).filter((id: string) => id !== roleId);
                               field.onChange(newValue);
