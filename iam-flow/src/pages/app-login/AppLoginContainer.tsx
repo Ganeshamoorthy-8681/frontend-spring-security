@@ -14,30 +14,44 @@ export default function AppLoginContainer() {
     setError('');
 
     try {
+      // Add a minimum loading time for better UX (prevents flash)
+      const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
 
-      if (loginData.loginType === 'root') {
-        // Root login - no account ID required
-        await authService.rootLogin({
-          email: loginData.email,
-          password: loginData.password
-        });
-      } else {
-        // User login - account ID required
-        if (!loginData.accountId) {
-          throw new Error('Account ID is required for user login');
-        }
+      const loginPromise = loginData.loginType === 'root' 
+        ? authService.rootLogin({
+            email: loginData.email,
+            password: loginData.password
+          })
+        : authService.login({
+            email: loginData.email,
+            password: loginData.password,
+            accountId: parseInt(loginData.accountId!)
+          });
 
-        await authService.login({
-          email: loginData.email,
-          password: loginData.password,
-          accountId: parseInt(loginData.accountId)
-        });
-      }
+      // Wait for both the API call and minimum loading time
+      await Promise.all([loginPromise, minLoadingTime]);
+
       // Navigate to dashboard or appropriate page
       navigate('/app/dashboard');
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (err instanceof Error) {
+        // Handle specific error messages
+        if (err.message.includes('Invalid credentials') || err.message.includes('Unauthorized')) {
+          errorMessage = 'Invalid email or password. Please check your credentials.';
+        } else if (err.message.includes('Account not found')) {
+          errorMessage = 'Account ID not found. Please verify your account identifier.';
+        } else if (err.message.includes('Account ID is required')) {
+          errorMessage = 'Account ID is required for user login.';
+        } else if (err.message.includes('Network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);

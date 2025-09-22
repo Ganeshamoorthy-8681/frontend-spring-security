@@ -15,7 +15,8 @@ import {
   Stack,
   Paper,
   AppBar,
-  Toolbar
+  Toolbar,
+  CircularProgress
 } from '@mui/material';
 import {
   Visibility,
@@ -92,6 +93,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
             edge="start" 
             component={Link}
             to="/" 
+            disabled={loading}
             sx={{ mr: 2, color: 'text.primary' }}
           >
             <ArrowBack />
@@ -143,7 +145,12 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
           </Typography>
         </Box>
 
-        <CardContent sx={{ padding: 4 }}>
+                <CardContent sx={{ 
+          p: 4,
+          position: 'relative',
+          opacity: loading ? 0.7 : 1,
+          transition: 'opacity 0.2s ease-in-out'
+        }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
               Select your login type
@@ -152,6 +159,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
               value={loginType}
               exclusive
               onChange={handleLoginTypeChange}
+              disabled={loading}
               fullWidth
               sx={{ mb: 2 }}
             >
@@ -206,7 +214,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
             </ToggleButtonGroup>
           </Box>
 
-          {error && (
+          {error && !loading && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
@@ -231,6 +239,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                       label="Account ID"
                       autoComplete='false'
                       placeholder="Enter your account identifier"
+                      disabled={loading}
                       error={!!errors.accountId}
                       helperText={errors.accountId?.message}
                       fullWidth
@@ -263,6 +272,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                     type="email"
                     placeholder="Enter your email"
                     autoComplete='false'
+                    disabled={loading}
                     error={!!errors.email}
                     helperText={errors.email?.message}
                     fullWidth
@@ -294,6 +304,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                     autoComplete='false'
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
+                    disabled={loading}
                     error={!!errors.password}
                     helperText={errors.password?.message}
                     fullWidth
@@ -307,6 +318,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                         <InputAdornment position="end">
                           <IconButton
                             onClick={togglePasswordVisibility}
+                            disabled={loading}
                             edge="end"
                             aria-label="toggle password visibility"
                           >
@@ -325,6 +337,7 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                 size="large"
                 fullWidth
                 disabled={loading || !isValid}
+                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
                 sx={{
                   py: 1.5,
                   mt: 2,
@@ -335,6 +348,14 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
                     background: loginType === 'user'
                       ? 'linear-gradient(45deg, #1976D2 30%, #1BA3D3 90%)'
                       : 'linear-gradient(45deg, #E55555 30%, #E77A43 90%)',
+                  },
+                  '&:disabled': {
+                    background: loading 
+                      ? (loginType === 'user' 
+                        ? 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
+                        : 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)')
+                      : 'rgba(0, 0, 0, 0.12)',
+                    opacity: loading ? 0.8 : 0.6,
                   }
                 }}
               >
@@ -350,10 +371,19 @@ export default function LoginPage({ onLogin, loading = false, error }: LoginPage
           </Divider>
 
           <Box sx={{ textAlign: 'center' }}>
-            <Button variant="text" size="small" sx={{ mr: 2 }}>
+            <Button 
+              variant="text" 
+              size="small" 
+              disabled={loading}
+              sx={{ mr: 2 }}
+            >
               Forgot Password?
             </Button>
-            <Button variant="text" size="small">
+            <Button 
+              variant="text" 
+              size="small"
+              disabled={loading}
+            >
               Contact Support
             </Button>
           </Box>
