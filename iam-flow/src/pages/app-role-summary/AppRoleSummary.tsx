@@ -17,7 +17,6 @@ import PersonIcon from '@mui/icons-material/Person';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DeleteIcon from '@mui/icons-material/Delete';
-import BlockIcon from '@mui/icons-material/Block';
 import { Menu, MenuItem, Toolbar } from '@mui/material';
 import { roleService } from '../../services';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
@@ -140,9 +139,6 @@ export default function AppRoleSummary() {
             >
               <MenuItem onClick={() => roleData && navigate('/app/roles/' + roleData.id + '/edit')}>
                 <EditIcon fontSize="small" sx={{ mr: 2 }} /> EDIT
-              </MenuItem>
-              <MenuItem onClick={() => navigate('/app/roles/')}>
-                <BlockIcon fontSize="small" sx={{ mr: 2 }} /> DISABLE
               </MenuItem>
               <MenuItem onClick={() => navigate('/app/roles/')}>
                 <DeleteIcon fontSize="small" color='error' sx={{ mr: 2 }} /> DELETE

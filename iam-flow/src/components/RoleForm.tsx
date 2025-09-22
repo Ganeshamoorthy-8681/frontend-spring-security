@@ -1,5 +1,5 @@
 import { useFormContext, Controller } from 'react-hook-form';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -12,31 +12,16 @@ import {
   Typography,
   Paper,
   InputAdornment,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import { permissionService } from '../services';
 import type { RoleCreateForm } from '../models/form/RoleCreateForm';
 import type { RoleEditForm } from '../models/form/RoleEditForm';
-
-// Available permissions in the system
-const availablePermissions = [
-  'admin.full',
-  'users.read',
-  'users.write',
-  'users.delete',
-  'roles.read',
-  'roles.write',
-  'roles.delete',
-  'account.read',
-  'account.write',
-  'content.read',
-  'content.write',
-  'content.delete',
-  'analytics.read',
-  'support.read',
-  'support.write'
-];
+import type { PermissionModel } from '../models/core/Permission';
 
 interface RoleFormProps {
   isEditMode?: boolean;
@@ -53,11 +38,33 @@ export default function RoleForm({
 
   const selectedPermissions = watch('permissions') || [];
   const [searchTerm, setSearchTerm] = useState('');
+  const [permissions, setPermissions] = useState<PermissionModel[]>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+
+  // Fetch permissions on component mount
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        setLoadingPermissions(true);
+        setPermissionError(null);
+        const permissionData = await permissionService.list();
+        setPermissions(permissionData);
+      } catch (error) {
+        console.error('Failed to fetch permissions:', error);
+        setPermissionError('Failed to load permissions. Please try again.');
+      } finally {
+        setLoadingPermissions(false);
+      }
+    };
+
+    fetchPermissions();
+  }, []);
 
   // Filter permissions based on search term
-  const filteredPermissions = availablePermissions.filter(permission =>
-    permission.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getPermissionDescription(permission).toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPermissions = permissions.filter(permission =>
+    permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (permission.description && permission.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleClearSearch = () => {
@@ -211,16 +218,25 @@ export default function RoleForm({
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <FormLabel component="legend">Available Permissions *</FormLabel>
                     <Typography variant="caption" color="text.secondary">
-                      {searchTerm
-                        ? `${filteredPermissions.length} of ${availablePermissions.length} permissions`
-                        : `${availablePermissions.length} permissions`
-                      }
+                      {loadingPermissions ? (
+                        'Loading permissions...'
+                      ) : searchTerm ? (
+                        `${filteredPermissions.length} of ${permissions.length} permissions`
+                      ) : (
+                        `${permissions.length} permissions`
+                      )}
                     </Typography>
                   </Box>
                   {errors.permissions && (
                     <FormHelperText error sx={{ mt: 1, mx: 0 }}>
                       {errors.permissions.message}
                     </FormHelperText>
+                  )}
+
+                  {permissionError && (
+                    <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+                      {permissionError}
+                    </Alert>
                   )}
 
                   {/* Search Field */}
@@ -286,7 +302,35 @@ export default function RoleForm({
                         background: (theme) => theme.palette.mode === 'dark' ? '#666' : '#a8a8a8',
                       },
                     }}>
-                      {filteredPermissions.length === 0 ? (
+                      {loadingPermissions ? (
+                        <Box sx={{
+                          gridColumn: '1 / -1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: '200px',
+                          textAlign: 'center'
+                        }}>
+                          <CircularProgress size={24} sx={{ mr: 2 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            Loading permissions...
+                          </Typography>
+                        </Box>
+                      ) : permissionError ? (
+                        <Box sx={{
+                          gridColumn: '1 / -1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: '200px',
+                          textAlign: 'center',
+                          color: 'error.main'
+                        }}>
+                          <Typography variant="body2">
+                            Failed to load permissions. Please refresh the page.
+                          </Typography>
+                        </Box>
+                      ) : filteredPermissions.length === 0 ? (
                         <Box sx={{
                           gridColumn: '1 / -1',
                           display: 'flex',
@@ -303,7 +347,7 @@ export default function RoleForm({
                       ) : (
                         filteredPermissions.map((permission) => (
                           <Box
-                            key={permission}
+                            key={permission.id}
                             sx={{
                               p: 2,
                               border: '1px solid',
@@ -319,25 +363,25 @@ export default function RoleForm({
                             <FormControlLabel
                               control={
                                 <Checkbox
-                                  checked={value.includes(permission)}
+                                  checked={value.includes(permission.name)}
                                   onChange={(e) => {
                                     if (e.target.checked) {
-                                      onChange([...value, permission]);
+                                      onChange([...value, permission.name]);
                                     } else {
-                                      onChange(value.filter((p: string) => p !== permission));
+                                      onChange(value.filter((p: string) => p !== permission.name));
                                     }
                                   }}
-                                  name={permission}
+                                  name={permission.name}
                                   sx={{ alignSelf: 'flex-start' }}
                                 />
                               }
                               label={
                                 <Box sx={{ ml: 1 }}>
                                   <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
-                                    {permission}
+                                    {permission.name}
                                   </Typography>
                                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
-                                    {getPermissionDescription(permission)}
+                                    {permission.description || 'No description available'}
                                   </Typography>
                                 </Box>
                               }
@@ -359,26 +403,4 @@ export default function RoleForm({
       </Box>
     </Box>
   );
-}
-
-// Helper function to provide permission descriptions
-function getPermissionDescription(permission: string): string {
-  const descriptions: Record<string, string> = {
-    'admin.full': 'Complete administrative access to all features',
-    'users.read': 'View user information and profiles',
-    'users.write': 'Create and modify user accounts',
-    'users.delete': 'Delete user accounts',
-    'roles.read': 'View role definitions and assignments',
-    'roles.write': 'Create and modify roles',
-    'roles.delete': 'Delete roles',
-    'account.read': 'View account settings and information',
-    'account.write': 'Modify account settings',
-    'content.read': 'View content and documents',
-    'content.write': 'Create and edit content',
-    'content.delete': 'Delete content and documents',
-    'analytics.read': 'Access analytics and reports',
-    'support.read': 'View support tickets and issues',
-    'support.write': 'Respond to and manage support requests'
-  };
-  return descriptions[permission] || 'Permission description not available';
 }

@@ -132,7 +132,6 @@ export default function AppRoles() {
                   <TableCell><strong>Role Name</strong></TableCell>
                   <TableCell><strong>Description</strong></TableCell>
                   <TableCell><strong>Permissions</strong></TableCell>
-                  <TableCell><strong>Role ID</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -171,12 +170,6 @@ export default function AppRoles() {
                         variant="outlined"
                         color="primary"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {/* Role API doesn't provide timestamps, could show ID or other info */}
-                        ID: {role.id}
-                      </Typography>
                     </TableCell>
                   </TableRow>
                 ))}
