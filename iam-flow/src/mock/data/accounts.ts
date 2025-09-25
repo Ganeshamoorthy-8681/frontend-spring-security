@@ -1,5 +1,5 @@
+import type { AccountCreateResponse } from "../../models/response/AccountCreateResponse";
 import type { AccountGetResponse } from "../../models/response/AccountGetResponse";
-import type { AccountResponse } from "../../models/response/AccountResponse";
 import type { AccountCreateRequest } from "../../services";
 
 /**
@@ -27,15 +27,17 @@ export const accountMockHelpers = {
     return mockAccounts.find(account => account.id === id) as AccountGetResponse;
   },
 
-  create: (accountData: AccountCreateRequest): AccountResponse => {
-    const newAccount: AccountResponse = {
+  create: (accountData: AccountCreateRequest): AccountCreateResponse => {
+    const newAccount: AccountCreateResponse = {
       name: accountData.name,
       description: accountData.description,
       type: accountData.type,
       status: 'CREATED',
       id: Math.max(...mockAccounts.map(a => a.id), 0) + 1,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      email: "ganeshamoorthya@gmail.com",
+      userId: 1
     };
     return newAccount;
   }

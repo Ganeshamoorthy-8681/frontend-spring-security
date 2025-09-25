@@ -7,7 +7,6 @@ import {
   Toolbar,
   Typography,
   IconButton,
-  Alert,
   Button,
   Stack,
   CircularProgress
@@ -16,11 +15,15 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { RoleForm } from '../../components';
 import type { RoleCreateForm } from '../../models/form/RoleCreateForm';
+import { roleService } from '../../services';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import type { RoleCreateRequest } from '../../models/request/RoleCreateRequest';
+import { toast } from 'react-toastify';
 
 export default function AppRoleCreate() {
   const navigate = useNavigate();
+  const currentUser = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const formMethods = useForm<RoleCreateForm>({
     mode: 'onTouched'
@@ -42,19 +45,26 @@ export default function AppRoleCreate() {
 
       setIsSubmitting(true);
 
-      // Simulate API call
-      console.log('Creating role:', data);
+      // Transform form data to API request format
+      const roleCreateRequest: RoleCreateRequest = {
+        name: data.name,
+        description: data.description,
+        permissions: data.permissions.map(permissionId => ({
+          id: parseInt(permissionId),
+          name: '' // This will be resolved on the backend
+        }))
+      };
 
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the real API
+      await roleService.create(currentUser.accountId, roleCreateRequest);
 
       // Show success message and navigate back
-      alert('Role created successfully!');
+      toast.success('Role created successfully!');
       navigate('/app/roles');
 
     } catch (error) {
+      toast.error("Role creation failed.");
       console.error('Error creating role:', error);
-      setSubmitError('Failed to create role. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,15 +92,9 @@ export default function AppRoleCreate() {
 
       <div className="page-content">
         <Box>
-          {submitError && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {submitError}
-            </Alert>
-          )}
-
           <FormProvider {...formMethods}>
             <form onSubmit={handleSubmit(handleCreateRole)}>
-              
+
               <RoleForm isEditMode={false} />
               <Paper style={{ padding: '1rem', position: 'absolute', bottom: 0, width: '100%', zIndex: 2 }} elevation={2} sx={{ p: 2, mt: 3 }}>
                 <Stack direction="row" spacing={2} >

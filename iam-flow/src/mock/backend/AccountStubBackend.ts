@@ -1,6 +1,7 @@
+import type { AccountCreateResponse } from '../../models/response/AccountCreateResponse';
 import type { AccountGetResponse } from '../../models/response/AccountGetResponse';
 import type { AccountStats } from '../../models/response/AccountStats';
-import type { AccountCreateRequest, AccountResponse } from '../../services';
+import type { AccountCreateRequest } from '../../services';
 import { accountMockHelpers } from '../data/accounts';
 
 /**
@@ -30,7 +31,7 @@ export class AccountStubBackend {
   /**
    * POST /api/v1/accounts
    */
-  async createAccount(accountData: AccountCreateRequest): Promise<AccountResponse> {
+  async createAccount(accountData: AccountCreateRequest): Promise<AccountCreateResponse> {
     await this.simulateDelay(500);
 
     const newAccount = accountMockHelpers.create(accountData);

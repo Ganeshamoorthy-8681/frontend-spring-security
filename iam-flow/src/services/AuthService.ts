@@ -3,11 +3,12 @@ import type { RootLoginRequest } from '../models/request/RootLoginRequest';
 import type { LoginRequest } from '../models/request/LoginRequest';
 import type { SetPasswordRequest } from '../models/request/SetPasswordRequest';
 import { jwtDecode } from "jwt-decode";
-import type { AxiosResponse } from 'axios';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
 import type { OtpValidationRequest } from '../models/request/OtpValidationRequest';
 import type { OtpValidationResponse } from '../models/response/OtpValidationResponse';
 import type { UserResponse } from '../models/response/UserResponse';
 import { configService } from './config/ConfigService';
+import { authService } from '.';
 
 
 /**
@@ -38,7 +39,7 @@ export class AuthService {
         request
       );
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         this.extractJwtToken(response);
       }
     } catch (error) {
@@ -50,6 +51,7 @@ export class AuthService {
   extractJwtToken(response: AxiosResponse): void {
     const authHeader = response.headers['authorization'] || response.headers['Authorization'];
     if (authHeader && authHeader.startsWith('Bearer ')) {
+      console.log("ENABLED ........................................");
       this.setToken(authHeader.substring(7));
       this.setTokenExpiryTime();
     }
@@ -62,7 +64,7 @@ export class AuthService {
         request
       );
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         this.extractJwtToken(response);
       }
 
@@ -96,7 +98,7 @@ export class AuthService {
 
   // Password management
   async setPassword(accountId: number, request: SetPasswordRequest): Promise<void> {
-    await this.apiClient.post(
+    await this.apiClient.patch(
       `/api/v1/accounts/${accountId}/users/set-password`,
       request
     );
@@ -139,7 +141,8 @@ export class AuthService {
       return this.currentUser;
     }
     const response = await this.apiClient.get<UserResponse>(
-      `/api/v1/auth/whoami`
+      `/api/v1/auth/whoami`,
+      { headers: authService.getRequestHeaders() }
     );
     this.currentUser = response.data;
     return response.data;
@@ -152,17 +155,17 @@ export class AuthService {
     const token = this.getToken();
     const expiry = this.getTokenExpiryTime();
 
-
     if (!token || !expiry) {
       return false;
     }
-    const isExpired = Date.now() < expiry;
+    const isExpired = Math.floor(Date.now() / 1000) < expiry;
     return isExpired;
   }
 
 
   // Token management
   public setToken(token: string): void {
+    this.clearSession();
     this.token = token;
     localStorage.setItem(this.TOKEN_STORAGE_KEY, token);
   }
@@ -183,7 +186,7 @@ export class AuthService {
     if (!this.tokenExpiry) {
       const exp = localStorage.getItem(this.TOKEN_EXPIRY);
       if (exp) {
-        this.tokenExpiry = parseInt(exp);
+        this.tokenExpiry = Number(exp);
       }
     }
     return this.tokenExpiry;
@@ -204,6 +207,24 @@ export class AuthService {
   clearSession(): void {
     localStorage.removeItem(this.TOKEN_STORAGE_KEY);
     localStorage.removeItem(this.TOKEN_EXPIRY);
+  }
+
+
+  /**
+   * Get complete headers object for authenticated requests 
+   * @returns Headers object with Authorization and Content-Type
+   */
+  getRequestHeaders(): AxiosHeaders {
+    const token = this.getToken();
+
+    const headers = new AxiosHeaders();
+    headers.set("Content-Type", "application/json");
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    return headers;
   }
 
 

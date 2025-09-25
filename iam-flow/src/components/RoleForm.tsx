@@ -177,25 +177,28 @@ export default function RoleForm({
                 Selected Permissions ({selectedPermissions.length}):
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selectedPermissions.map((permission: string) => (
-                  <Box
-                    key={permission}
-                    sx={{
-                      px: 1,
-                      py: 0.25,
-                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'primary.800' : 'primary.100',
-                      color: (theme) => theme.palette.mode === 'dark' ? 'primary.100' : 'primary.800',
-                      borderRadius: 1,
-                      fontSize: '0.75rem',
-                      fontWeight: 'medium',
-                      border: '1px solid',
-                      borderColor: (theme) => theme.palette.mode === 'dark' ? 'primary.600' : 'primary.300',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {permission}
-                  </Box>
-                ))}
+                {selectedPermissions.map((permissionId: string) => {
+                  const permission = permissions.find(p => p.id.toString() === permissionId);
+                  return (
+                    <Box
+                      key={permissionId}
+                      sx={{
+                        px: 1,
+                        py: 0.25,
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'primary.800' : 'primary.100',
+                        color: (theme) => theme.palette.mode === 'dark' ? 'primary.100' : 'primary.800',
+                        borderRadius: 1,
+                        fontSize: '0.75rem',
+                        fontWeight: 'medium',
+                        border: '1px solid',
+                        borderColor: (theme) => theme.palette.mode === 'dark' ? 'primary.600' : 'primary.300',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {permission?.name || `Permission ${permissionId}`}
+                    </Box>
+                  );
+                })}
               </Box>
             </Box>
           )}
@@ -363,15 +366,16 @@ export default function RoleForm({
                             <FormControlLabel
                               control={
                                 <Checkbox
-                                  checked={value.includes(permission.name)}
+                                  checked={value.includes(permission.id.toString())}
                                   onChange={(e) => {
+                                    const permissionId = permission.id.toString();
                                     if (e.target.checked) {
-                                      onChange([...value, permission.name]);
+                                      onChange([...value, permissionId]);
                                     } else {
-                                      onChange(value.filter((p: string) => p !== permission.name));
+                                      onChange(value.filter((id: string) => id !== permissionId));
                                     }
                                   }}
-                                  name={permission.name}
+                                  name={permission.id.toString()}
                                   sx={{ alignSelf: 'flex-start' }}
                                 />
                               }

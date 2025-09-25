@@ -21,7 +21,11 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import type { RoleResponse } from "../models/response/RoleResponse";
 import { toast } from "react-toastify";
 
-export default function RoleStep() {
+interface RoleStepProps {
+  readOnly?: boolean;
+}
+
+export default function RoleStep({ readOnly = false }: RoleStepProps) {
 
   const { control } = useFormContext<RoleStepForm>();
   const [roles, setRoles] = useState<RoleResponse[]>([]);
@@ -76,12 +80,13 @@ export default function RoleStep() {
                 multiple
                 value={field.value || []}
                 onChange={(event) => {
+                  if (readOnly) return; // Prevent changes when read-only
                   const value = event.target.value;
                   // Handle the case where the value is not an array (shouldn't happen with multiple select)
                   if (!Array.isArray(value)) return;
                   field.onChange(value);
                 }}
-                disabled={loading}
+                disabled={loading || readOnly}
                 input={<OutlinedInput label="Roles" />}
                 renderValue={(selected) => {
                   if (!Array.isArray(selected) || roles.length === 0) return null;
@@ -110,7 +115,7 @@ export default function RoleStep() {
                             label={roleName || `Role ${roleId}`}
                             variant="outlined"
                             size="small"
-                            onDelete={() => {
+                            onDelete={readOnly ? undefined : () => {
                               const newValue = (field.value || []).filter((id: string) => id !== roleId);
                               field.onChange(newValue);
                             }}
@@ -136,8 +141,10 @@ export default function RoleStep() {
                   <MenuItem
                     key="select-all"
                     dense
+                    disabled={readOnly}
                     sx={{ borderBottom: '1px solid rgba(0, 0, 0, 0.12)' }}
                     onClick={(event) => {
+                      if (readOnly) return;
                       // Prevent the Select from closing
                       event.stopPropagation();
                       const allSelected = (field.value || []).length === roles.length;
@@ -148,7 +155,9 @@ export default function RoleStep() {
                     <Checkbox
                       checked={(field.value || []).length === roles.length}
                       indeterminate={(field.value || []).length > 0 && (field.value || []).length < roles.length}
+                      disabled={readOnly}
                       onClick={(event) => {
+                        if (readOnly) return;
                         // Prevent triggering the MenuItem click
                         event.stopPropagation();
                         const target = event.target as HTMLInputElement;
@@ -164,7 +173,9 @@ export default function RoleStep() {
                     <MenuItem
                       key={role.id}
                       value={role.id.toString()}
+                      disabled={readOnly}
                       onClick={(event) => {
+                        if (readOnly) return;
                         // Prevent the Select from closing
                         event.stopPropagation();
                         const currentValue = field.value || [];
@@ -177,7 +188,9 @@ export default function RoleStep() {
                     >
                       <Checkbox
                         checked={(field.value || []).includes(role.id.toString())}
+                        disabled={readOnly}
                         onClick={(event) => {
+                          if (readOnly) return;
                           // Prevent triggering the MenuItem click
                           event.stopPropagation();
                           const target = event.target as HTMLInputElement;

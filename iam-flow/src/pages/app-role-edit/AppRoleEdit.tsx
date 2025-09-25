@@ -20,6 +20,7 @@ import { roleService } from '../../services';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import type { RoleEditForm } from '../../models/form/RoleEditForm';
 import type { RoleCreateRequest } from '../../models/request/RoleCreateRequest';
+import { toast } from 'react-toastify';
 
 export default function AppRoleEdit() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function AppRoleEdit() {
           id: response.id.toString(),
           name: response.name,
           description: response.description,
-          permissions: response.permissions.map(p => p.name)
+          permissions: response.permissions.map(p => p.id.toString())
         });
 
       } catch (error) {
@@ -93,19 +94,22 @@ export default function AppRoleEdit() {
       const updateRequest: Partial<RoleCreateRequest> = {
         name: data.name,
         description: data.description,
-        // Note: permissions update may require a different approach
-        // depending on how the backend handles permission IDs vs names
+        permissions: data.permissions.map(permissionId => ({
+          id: parseInt(permissionId),
+          name: '' // This will be resolved on the backend
+        }))
       };
 
       const response = await roleService.update(currentUser.accountId, Number(roleId), updateRequest);
       console.log('Role updated successfully:', response);
 
       // Show success message and navigate back
-      alert('Role updated successfully!');
+      toast.success('Role updated successfully!');
       navigate(`/app/roles/${roleId}`);
 
     } catch (error) {
       console.error('Error updating role:', error);
+      toast.error('Failed to update role. Please try again.');
       setSubmitError('Failed to update role. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -202,6 +206,8 @@ export default function AppRoleEdit() {
             variant="contained"
             startIcon={isSubmitting ? <CircularProgress size={16} /> : <SaveIcon />}
             type="submit"
+            form="role-edit-form"
+            disabled={isSubmitting}
           >
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
