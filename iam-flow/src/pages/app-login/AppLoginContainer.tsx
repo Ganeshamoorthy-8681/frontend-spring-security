@@ -14,9 +14,6 @@ export default function AppLoginContainer() {
     setError('');
 
     try {
-      // Add a minimum loading time for better UX (prevents flash)
-      const minLoadingTime = new Promise(resolve => setTimeout(resolve, 800));
-
       const loginPromise = loginData.loginType === 'root' 
         ? authService.rootLogin({
             email: loginData.email,
@@ -29,7 +26,7 @@ export default function AppLoginContainer() {
           });
 
       // Wait for both the API call and minimum loading time
-      await Promise.all([loginPromise, minLoadingTime]);
+      await Promise.all([loginPromise]);
 
       // Navigate to dashboard or appropriate page
       navigate('/app/dashboard');

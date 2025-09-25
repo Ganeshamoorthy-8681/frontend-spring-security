@@ -132,8 +132,8 @@ export class StubBackendService {
 
       // Role routes - Check specific routes first
 
-      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles')) {
-        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles', 'accountId');
+      if (this.matchesPattern(normalizedUrl, '/api/v1/accounts/{accountId}/roles/create')) {
+        const accountId = this.extractPathParam(normalizedUrl, '/api/v1/accounts/{accountId}/roles/create', 'accountId');
 
         if (normalizedMethod === 'POST') {
           const response = await this.roleBackend.createRole(parseInt(accountId), data as RoleCreateRequest);

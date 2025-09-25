@@ -6,7 +6,6 @@ import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
-import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import IconButton from '@mui/material/IconButton';
 import Skeleton from '@mui/material/Skeleton';
@@ -14,11 +13,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import PersonIcon from '@mui/icons-material/Person';
 import SecurityIcon from '@mui/icons-material/Security';
-import CloseIcon from '@mui/icons-material/Close';
 import { Toolbar } from '@mui/material';
 import { FormProvider, PersonalStep } from '../app-account-create/components';
 import type { PersonalFormStep } from '../../models/form/PersonalFormStep';
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import RoleStep from '../../components/RoleStep';
 import { userService } from '../../services';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
@@ -35,8 +33,6 @@ export default function AppUserEdit() {
 
   const [userData, setUserData] = useState<UserResponse | null>(null);
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-
   // Extend PersonalFormStep to include roles
   interface UserEditForm extends PersonalFormStep {
     roles: string[];
@@ -51,6 +47,8 @@ export default function AppUserEdit() {
       roles: []
     }
   });
+
+  const { handleSubmit } = formMethods;
 
   // Load user data from API
   useEffect(() => {
@@ -82,25 +80,40 @@ export default function AppUserEdit() {
     loadUser();
   }, [userId, currentUser?.accountId, formMethods, navigate]);
 
+  // Helper function to check if user has root role
+  const isRootUser = (user: UserResponse | null): boolean => {
+    if (!user || !user.roles) return false;
+    return user.roles.some(role => 
+      role.name?.toLowerCase() === 'root' || 
+      role.name?.toLowerCase() === 'admin' ||
+      role.name?.toLowerCase() === 'super admin' ||
+      role.name?.toLowerCase() === 'system admin'
+    );
+  };
 
-  const handleSave = async () => {
-    const isValid = await formMethods.trigger();
-    if (isValid && userData && currentUser?.accountId) {
+
+  const handleSave: SubmitHandler<UserEditForm> = async (data) => {
+    if (userData && currentUser?.accountId) {
+      
+      // Prevent saving for root users
+      if (isRootUser(userData)) {
+        toast.error('Cannot modify users with administrative privileges for security reasons.');
+        return;
+      }
+      
       setSaving(true);
       try {
-        const formData = formMethods.getValues();
         const updateRequest: UserUpdateRequest = {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          firstName: data.firstName,
+          lastName: data.lastName,
           middleName: '',
-          roleIds: formData.roles.map(roleId => Number(roleId))
+          roleIds: data.roles.map(roleId => Number(roleId))
         };
 
         await userService.update(currentUser.accountId, Number(userId), updateRequest);
-        setSnackbarOpen(true);
         toast.success('User updated successfully!');
         
-        // Optionally navigate back to user summary
+        // Navigate back to user summary
         setTimeout(() => {
           navigate(`/app/users/${userId}`);
         }, 1500);
@@ -164,32 +177,46 @@ export default function AppUserEdit() {
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
               {/* Main Form */}
               <FormProvider {...formMethods} >
-
-                <Stack spacing={3}>
-                  {/* Personal Information */}
-                  <Paper elevation={2} sx={{ p: 3 }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-                      <PersonIcon color="primary" />
-                      <Typography variant="h6">
-                        Personal Information
-                      </Typography>
-                    </Stack>
-                    <Stack>
-                      <PersonalStep mode='edit' />
-                    </Stack>
-                  </Paper>
-                  <Paper elevation={2} sx={{ p: 3 }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-                      <SecurityIcon color="primary" />
-                      <Typography variant="h6">
-                        Role Information
-                      </Typography>
-                    </Stack>
-                    <Stack>
-                      <RoleStep />
-                    </Stack>
-                  </Paper>
-                </Stack>
+                <form id="user-edit-form" onSubmit={handleSubmit(handleSave)}>
+                  <Stack spacing={3}>
+                    {/* Personal Information */}
+                    <Paper elevation={2} sx={{ p: 3 }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                        <PersonIcon color="primary" />
+                        <Typography variant="h6">
+                          Personal Information
+                        </Typography>
+                      </Stack>
+                      <Stack>
+                        <PersonalStep mode='edit' />
+                      </Stack>
+                    </Paper>
+                    <Paper elevation={2} sx={{ p: 3 }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                        <SecurityIcon color="primary" />
+                        <Typography variant="h6">
+                          Role Information
+                        </Typography>
+                        {isRootUser(userData) && (
+                          <Chip 
+                            label="Protected User" 
+                            color="warning" 
+                            size="small" 
+                            variant="outlined"
+                          />
+                        )}
+                      </Stack>
+                      <Stack>
+                        <RoleStep readOnly={isRootUser(userData)} />
+                        {isRootUser(userData) && (
+                          <Alert severity="warning" sx={{ mt: 2 }}>
+                            This user has administrative privileges. Role assignments cannot be modified to maintain system security.
+                          </Alert>
+                        )}
+                      </Stack>
+                    </Paper>
+                  </Stack>
+                </form>
               </FormProvider>
 
               {/* Sidebar */}
@@ -272,24 +299,6 @@ export default function AppUserEdit() {
                 </Paper>
               </Stack>
             </Box>
-            {/* Success Snackbar */}
-            <Snackbar
-              open={snackbarOpen}
-              autoHideDuration={6000}
-              onClose={() => setSnackbarOpen(false)}
-            >
-              <Alert
-                onClose={() => setSnackbarOpen(false)}
-                severity="success"
-                action={
-                  <IconButton size="small" color="inherit" onClick={() => setSnackbarOpen(false)}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                }
-              >
-                User updated successfully!
-              </Alert>
-            </Snackbar>
           </>
         }
 
@@ -306,8 +315,10 @@ export default function AppUserEdit() {
           <Button
             variant="contained"
             startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={saving}
+            type="submit"
+            form="user-edit-form"
+            disabled={saving || isRootUser(userData)}
+            title={isRootUser(userData) ? 'Cannot modify users with administrative privileges' : undefined}
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>

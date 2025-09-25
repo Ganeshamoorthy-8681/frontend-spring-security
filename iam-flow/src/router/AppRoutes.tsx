@@ -14,6 +14,8 @@ import AppRoleCreate from '../pages/app-role-create/AppRoleCreate';
 import AppRoleEdit from '../pages/app-role-edit/AppRoleEdit';
 import AppLoginContainer from '../pages/app-login/AppLoginContainer';
 import AppOtpPasswordSetup from '../pages/app-otp-password-setup/AppOtpPasswordSetup';
+import { AppError } from '../pages/app-error';
+import ErrorTestPage from '../pages/app-error/ErrorTestPage';
 
 export default function AppRoutes() {
   return (
@@ -21,7 +23,7 @@ export default function AppRoutes() {
       <Route path="/" element={<App />} />
       <Route path="/login" element={<AppLoginContainer />} />
       <Route path="/account-create" element={<AppAccountCreate />} />
-      <Route path="/setup-password" element={<AppOtpPasswordSetup />} />
+      <Route path="/verify" element={<AppOtpPasswordSetup />} />
       <Route path="/app" element={<AppBase />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AppDashboard />} />
@@ -35,6 +37,17 @@ export default function AppRoutes() {
         <Route path="roles/:roleId" element={<AppRoleSummary />} />
         <Route path="roles/:roleId/edit" element={<AppRoleEdit />} />
       </Route>
+      
+      {/* Error pages */}
+      <Route path="/error" element={<AppError />} />
+      
+      {/* Development-only error test page */}
+      {process.env.NODE_ENV === 'development' && (
+        <Route path="/error-test" element={<ErrorTestPage />} />
+      )}
+      
+      {/* Catch-all route for 404 errors */}
+      <Route path="*" element={<AppError errorType="404" />} />
     </Routes>
   );
 }

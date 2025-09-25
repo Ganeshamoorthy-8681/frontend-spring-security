@@ -1,3 +1,4 @@
+import { authService } from '.';
 import type { Permission } from '../models/request/RoleCreateRequest';
 import { apiClient } from './ApiClient';
 
@@ -14,7 +15,8 @@ export class PermissionService {
    * This is a read-only operation
    */
   async list(): Promise<Permission[]> {
-    const response = await apiClient.get<Permission[]>(`/api/v1/permissions/list`);
+    const response = await apiClient.get<Permission[]>(`/api/v1/permissions/list`,
+      { headers: authService.getRequestHeaders() });
     return response.data;
   }
 }

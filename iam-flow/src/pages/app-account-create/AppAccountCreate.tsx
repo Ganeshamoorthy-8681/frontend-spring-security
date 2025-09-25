@@ -21,7 +21,9 @@ import { ThemeToggle } from '../../components/theme-toggle/ThemeToggle';
 import { accountService, authService, userService, type AccountCreateRequest, type OtpValidationRequest, type SetPasswordRequest } from '../../services';
 import { toast } from 'react-toastify';
 import { ToastContainer } from 'react-toastify';
-import type { AccountResponse } from '../../models/response/AccountResponse';
+import type { AccountCreateResponse } from '../../models/response/AccountCreateResponse';
+import type { AxiosError } from 'axios';
+import type { ErrorResponse } from '../../models/common/ErrorResponse';
 
 // Steps configuration
 interface StepConfigModel {
@@ -72,7 +74,7 @@ export default function AppAccountCreate() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [account, setAccount] = useState<AccountResponse>();
+  const [account, setAccount] = useState<AccountCreateResponse>();
 
   const formMethods = useForm<AccountCreateForm>({
     mode: 'onTouched'
@@ -91,12 +93,13 @@ export default function AppAccountCreate() {
     if (!isStepValid) return;
     if (activeStep == 1) {
       createAccount();
-    }
-    if (activeStep == 2) {
+    } else if (activeStep == 2) {
       validateOtp();
+    } else {
+      const nextStep = activeStep + 1;
+      setActiveStep(nextStep);
     }
-    const nextStep = activeStep + 1;
-    setActiveStep(nextStep);
+
   };
 
   const createAccount = async () => {
@@ -106,6 +109,8 @@ export default function AppAccountCreate() {
       const response = await accountService.createAccount(reqBody);
       setAccount(response);
       toast.success("Account creation successfully done. Otp has been sent to verify email");
+      const nextStep = activeStep + 1;
+      setActiveStep(nextStep);
       setLoading(false);
     } catch (exception) {
       setLoading(false);
@@ -132,11 +137,21 @@ export default function AppAccountCreate() {
     try {
       const reqBody: OtpValidationRequest = preparePayloadForOtpValidation();
       setLoading(true);
-      await authService.validateOtp(reqBody);
-      toast.success("Otp Verification success");
-      setLoading(false);
+      const response = await authService.validateOtp(reqBody);
+      if (response.status == "VALID") {
+        toast.success("Otp Verification success");
+        setLoading(false);
+        const nextStep = activeStep + 1;
+        setActiveStep(nextStep);
+      } else {
+        toast.error("Otp Verification status is" + response.status);
+      }
     } catch (e) {
-      toast.error("Otp Verification failed" + e);
+      const error = e as AxiosError;
+      if (error.response) {
+        const errorResponse = error.response?.data as ErrorResponse;
+        toast.error("Otp Verification failed"+ errorResponse?.message);
+      }
       setLoading(false);
     }
   };

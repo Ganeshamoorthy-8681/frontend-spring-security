@@ -6,6 +6,7 @@ import AppNavigationSidebar from '../../components/app-navigation-sidebar/AppNav
 import styled from '@emotion/styled';
 import { ToastContainer } from 'react-toastify';
 import { CurrentUserContextProvider } from '../../contexts/CurrentUserContext';
+import { ErrorBoundary } from '../app-error';
 
 const AppBaseContainer = styled.div<{ isDarkMode: boolean; }>`
   .app-content {
@@ -28,7 +29,9 @@ export default function AppBase() {
       <Box style={{ display: 'flex' }}>
         <AppNavigationSidebar />
         <Box className="app-content">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </Box>
       </Box>
       <ToastContainer position="top-right" autoClose={3000} theme="colored" />

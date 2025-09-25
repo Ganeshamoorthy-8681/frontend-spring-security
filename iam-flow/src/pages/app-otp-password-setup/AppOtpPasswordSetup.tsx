@@ -172,6 +172,73 @@ export default function AppOtpPasswordSetup() {
     'Set Password'
   ];
 
+  // If OTP is expired, show only the expired message and resend option
+  if (otpValidationStatus === 'expired') {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2
+      }}>
+        <Card sx={{ maxWidth: 500, width: '100%', boxShadow: 3 }}>
+          <CardContent sx={{ p: 4, textAlign: 'center' }}>
+            <AccessTimeIcon sx={{ fontSize: 64, color: 'warning.main', mb: 3 }} />
+            <Typography variant="h4" fontWeight="bold" gutterBottom color="warning.main">
+              Link Expired
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              Your verification link has expired. Please request a new one to continue with your account setup.
+            </Typography>
+            
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+            
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                {success}
+              </Alert>
+            )}
+
+            <Stack spacing={2}>
+              <Button
+                variant="contained"
+                startIcon={loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+                onClick={handleResendOtp}
+                disabled={loading || !emailParam}
+                size="large"
+                fullWidth
+              >
+                {loading ? 'Sending...' : 'Resend Verification Link'}
+              </Button>
+              
+              <Button
+                variant="outlined"
+                startIcon={<LoginIcon />}
+                onClick={() => navigate('/login')}
+                size="large"
+                fullWidth
+              >
+                Back to Login
+              </Button>
+            </Stack>
+            
+            {emailParam && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
+                New link will be sent to: {emailParam}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ 
       minHeight: '100vh',
@@ -293,22 +360,7 @@ export default function AppOtpPasswordSetup() {
                             </Alert>
                           )}
                           
-                          {otpValidationStatus === 'expired' && (
-                            <Box>
-                              <Alert severity="warning" icon={<AccessTimeIcon />} sx={{ mb: 2 }}>
-                                Your OTP has expired. Please request a new one to continue.
-                              </Alert>
-                              <Button
-                                variant="outlined"
-                                startIcon={<RefreshIcon />}
-                                onClick={handleResendOtp}
-                                disabled={loading}
-                                size="small"
-                              >
-                                Resend OTP
-                              </Button>
-                            </Box>
-                          )}
+
                           
                           {otpValidationStatus === 'invalid' && (
                             <Box>
