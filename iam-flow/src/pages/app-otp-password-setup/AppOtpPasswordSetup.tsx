@@ -27,6 +27,7 @@ import { PasswordField } from '../../components';
 import type { OtpValidationRequest } from '../../models/request/OtpValidationRequest';
 import type { SetPasswordRequest } from '../../models/request/SetPasswordRequest';
 import type { AccountGetResponse } from '../../models/response/AccountGetResponse';
+import type { ResendOtpRequest } from '../../models/request/ResendOtpRequest';
 
 interface PasswordForm {
   password: string;
@@ -36,7 +37,7 @@ interface PasswordForm {
 export default function AppOtpPasswordSetup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // Extract OTP from query params
   const otpParam = searchParams.get('otp');
   const emailParam = searchParams.get('email');
@@ -74,7 +75,7 @@ export default function AppOtpPasswordSetup() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const request: OtpValidationRequest = {
           email: emailParam,
           otp: parseInt(otpParam),
@@ -82,12 +83,12 @@ export default function AppOtpPasswordSetup() {
         };
 
         const response = await authService.validateOtp(request);
-        
+
         if (response.status === 'VALID') {
           setOtpValidationStatus('valid');
           setCurrentStep(1);
           setSuccess('OTP validated successfully! Now please set your password.');
-          
+
           // Load account information after successful OTP validation
           try {
             const accountData = await accountService.getAccount(parseInt(accountIdParam));
@@ -137,7 +138,7 @@ export default function AppOtpPasswordSetup() {
 
       await authService.setPassword(parseInt(accountIdParam), request);
       setSuccess(`Password set successfully! Redirecting to login page... Remember to use Account ID: ${accountIdParam}`);
-      
+
       // Redirect to login page after successful password setup
       setTimeout(() => {
         navigate('/login');
@@ -156,8 +157,14 @@ export default function AppOtpPasswordSetup() {
     try {
       setLoading(true);
       setError(null);
-      
-      await authService.resendOtp(emailParam);
+
+      const reqBody: ResendOtpRequest = {
+        email: emailParam,
+        accountId: parseInt(accountIdParam ?? '0'),
+        isRoot: false
+      };
+
+      await authService.resendOtp(reqBody);
       setSuccess('A new OTP has been sent to your email. Please check and use the new link.');
     } catch (error) {
       console.error('Resend OTP failed:', error);
@@ -175,7 +182,7 @@ export default function AppOtpPasswordSetup() {
   // If OTP is expired, show only the expired message and resend option
   if (otpValidationStatus === 'expired') {
     return (
-      <Box sx={{ 
+      <Box sx={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         display: 'flex',
@@ -192,13 +199,13 @@ export default function AppOtpPasswordSetup() {
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
               Your verification link has expired. Please request a new one to continue with your account setup.
             </Typography>
-            
+
             {error && (
               <Alert severity="error" sx={{ mb: 3 }}>
                 {error}
               </Alert>
             )}
-            
+
             {success && (
               <Alert severity="success" sx={{ mb: 3 }}>
                 {success}
@@ -216,7 +223,7 @@ export default function AppOtpPasswordSetup() {
               >
                 {loading ? 'Sending...' : 'Resend Verification Link'}
               </Button>
-              
+
               <Button
                 variant="outlined"
                 startIcon={<LoginIcon />}
@@ -227,7 +234,7 @@ export default function AppOtpPasswordSetup() {
                 Back to Login
               </Button>
             </Stack>
-            
+
             {emailParam && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
                 New link will be sent to: {emailParam}
@@ -240,7 +247,7 @@ export default function AppOtpPasswordSetup() {
   }
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
@@ -262,10 +269,10 @@ export default function AppOtpPasswordSetup() {
 
           {/* Account Information Card */}
           {accountInfo && (
-            <Alert 
-              severity="info" 
+            <Alert
+              severity="info"
               icon={<BusinessIcon />}
-              sx={{ 
+              sx={{
                 mb: 4,
                 '& .MuiAlert-message': {
                   width: '100%'
@@ -289,10 +296,10 @@ export default function AppOtpPasswordSetup() {
                     <Typography variant="body2" color="text.secondary">
                       Account ID (needed for login)
                     </Typography>
-                    <Typography 
-                      variant="body1" 
+                    <Typography
+                      variant="body1"
                       fontWeight="bold"
-                      sx={{ 
+                      sx={{
                         bgcolor: 'background.paper',
                         px: 1,
                         py: 0.5,
@@ -353,15 +360,15 @@ export default function AppOtpPasswordSetup() {
                               </Typography>
                             </Box>
                           )}
-                          
+
                           {otpValidationStatus === 'valid' && (
                             <Alert severity="success" icon={<CheckCircleIcon />}>
                               OTP validated successfully! You can now proceed to set your password.
                             </Alert>
                           )}
-                          
 
-                          
+
+
                           {otpValidationStatus === 'invalid' && (
                             <Box>
                               <Alert severity="error" icon={<ErrorIcon />} sx={{ mb: 2 }}>
@@ -408,7 +415,7 @@ export default function AppOtpPasswordSetup() {
                                 label="Confirm Password"
                                 validation={{
                                   required: 'Please confirm your password',
-                                  validate: (value: string) => 
+                                  validate: (value: string) =>
                                     value === password || 'Passwords do not match'
                                 }}
                               />
@@ -440,7 +447,7 @@ export default function AppOtpPasswordSetup() {
               {error}
             </Alert>
           )}
-          
+
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {success}

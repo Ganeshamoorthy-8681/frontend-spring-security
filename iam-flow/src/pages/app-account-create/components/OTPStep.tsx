@@ -8,25 +8,42 @@ import { useFormContext } from 'react-hook-form';
 import { useState } from 'react';
 import { authService } from "../../../services";
 import { toast } from 'react-toastify';
+import type { ResendOtpRequest } from "../../../models/request/ResendOtpRequest";
+import type { AccountCreateResponse } from "../../../models/response/AccountCreateResponse";
 
-export default function OTPStep() {
+type OTPStepProps = {
+  accountData?: AccountCreateResponse;
+};
+
+export default function OTPStep({ accountData }: OTPStepProps) {
   const { register, formState: { errors }, watch } = useFormContext();
   const [loading, setLoading] = useState(false);
 
-  // Watch form values to get email
-  const email = watch('email');
+  // Watch form values to get email, fallback to accountData email
+  const email: string = watch('email') || accountData?.email || '';
 
-  function resendOtp() {
+  async function resendOtp() {
     try {
       setLoading(true);
-      authService.resendOtp(email);
+      const request = prepareResendOtpPayload();
+      await authService.resendOtp(request);
       setLoading(false);
-      toast.success("Otp has been resend to email.");
+      toast.success("OTP has been resent to your email.");
     } catch (e) {
       setLoading(false);
-      toast.error("Failed to sent otp." + e);
+      toast.error("Failed to send OTP: " + e);
     }
   }
+
+
+  const prepareResendOtpPayload = () => {
+    const reqBody: ResendOtpRequest = {
+      email,
+      accountId: accountData?.id,
+      isRoot: true
+    };
+    return reqBody;
+  };
 
   return (
     <Stack spacing={3}>
@@ -37,6 +54,20 @@ export default function OTPStep() {
       {email && (
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
           OTP sent to: <strong>{email}</strong>
+        </Typography>
+      )}
+
+      {accountData && (
+        <Typography variant="body2" color="text.secondary" sx={{
+          p: 2,
+          bgcolor: 'action.hover',
+          borderRadius: 1,
+          border: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <strong>Account:</strong> {accountData.name} ({accountData.type})
+          <br />
+          <strong>Status:</strong> {accountData.status}
         </Typography>
       )}
 
@@ -70,9 +101,10 @@ export default function OTPStep() {
           variant="text"
           size="small"
           onClick={() => resendOtp()}
+          disabled={loading || !accountData || !email}
           startIcon={loading && <CircularProgress size={16} />}
         >
-          Resend
+          {loading ? 'Sending...' : 'Resend'}
         </Button>
       </Box>
 

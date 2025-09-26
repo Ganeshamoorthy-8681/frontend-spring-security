@@ -9,6 +9,7 @@ import type { OtpValidationResponse } from '../models/response/OtpValidationResp
 import type { UserResponse } from '../models/response/UserResponse';
 import { configService } from './config/ConfigService';
 import { authService } from '.';
+import type { ResendOtpRequest } from '../models/request/ResendOtpRequest';
 
 
 /**
@@ -88,10 +89,10 @@ export class AuthService {
     return response.data;
   }
 
-  async resendOtp(email: string): Promise<void> {
+  async resendOtp(request: ResendOtpRequest): Promise<void> {
     await this.apiClient.post(
       `/api/v1/otp/resend`,
-      { email }
+      request
     );
   }
 

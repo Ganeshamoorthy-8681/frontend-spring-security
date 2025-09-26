@@ -31,7 +31,6 @@ interface StepConfigModel {
   label: string;
   description: string;
   icon: ReactElement;
-  component: ReactElement;
   fields: (keyof AccountCreateForm)[];
 }
 
@@ -41,7 +40,6 @@ const stepsConfig: StepConfigModel[] = [
     label: 'Account Info',
     description: 'Set up your account details',
     icon: <AccountCircle />,
-    component: <AccountStep />,
     fields: ['accountName', 'accountType'] as (keyof AccountCreateForm)[]
   },
   {
@@ -49,7 +47,6 @@ const stepsConfig: StepConfigModel[] = [
     label: 'Personal Info',
     description: 'Tell us about yourself',
     icon: <Person />,
-    component: <PersonalStep />,
     fields: ['firstName', 'lastName', 'email'] as (keyof AccountCreateForm)[]
   },
   {
@@ -57,7 +54,6 @@ const stepsConfig: StepConfigModel[] = [
     label: 'Verification',
     description: 'Verify your email address',
     icon: <VerifiedUser />,
-    component: <OTPStep />,
     fields: ['otp'] as (keyof AccountCreateForm)[]
   },
   {
@@ -65,7 +61,6 @@ const stepsConfig: StepConfigModel[] = [
     label: 'Security',
     description: 'Create a secure password',
     icon: <Lock />,
-    component: <PasswordStep />,
     fields: ['password', 'confirmPassword'] as (keyof AccountCreateForm)[]
   }
 ];
@@ -150,7 +145,7 @@ export default function AppAccountCreate() {
       const error = e as AxiosError;
       if (error.response) {
         const errorResponse = error.response?.data as ErrorResponse;
-        toast.error("Otp Verification failed"+ errorResponse?.message);
+        toast.error("Otp Verification failed" + errorResponse?.message);
       }
       setLoading(false);
     }
@@ -188,7 +183,21 @@ export default function AppAccountCreate() {
   };
 
   const renderStepContent = () => {
-    return stepsConfig[activeStep]?.component;
+    const currentStep = stepsConfig[activeStep];
+
+    if (!currentStep) return null;
+
+    // Render specific components with their required props
+    switch (currentStep.id) {
+      case 'account':
+        return <AccountStep />;
+      case 'personal':
+        return <PersonalStep />;
+      case 'otp':
+        return <OTPStep accountData={account} />;
+      case 'password':
+        return <PasswordStep />;
+    }
   };
 
   return (
