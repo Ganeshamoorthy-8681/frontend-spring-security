@@ -1,12 +1,12 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import type { ErrorResponse } from '../models/common/ApiTypes';
 import {
   stubBackendRequestInterceptor,
   stubBackendResponseInterceptor,
   stubBackendErrorInterceptor
 } from '../mock/interceptors/StubBackendInterceptor';
 import { configService } from './config/ConfigService';
+import type { ErrorResponse } from '../models/common/ErrorResponse';
 
 
 class ApiClient {
@@ -74,9 +74,8 @@ class ApiClient {
 
         const apiError: ErrorResponse = {
           message: 'An error occurred',
-          status: error.response?.status || 500,
           code: error.code,
-          details: error.response?.data as Record<string, unknown>,
+          causes: []
         };
 
         // Handle different error types
@@ -84,7 +83,6 @@ class ApiClient {
           // Server responded with error status
           const responseData = error.response.data as { message?: string; };
           apiError.message = responseData?.message || 'Server error occurred';
-          apiError.status = error.response.status;
 
           // Handle authentication errors
           if (error.response.status === 401) {
@@ -97,7 +95,6 @@ class ApiClient {
         } else if (error.request) {
           // Network error
           apiError.message = 'Network error. Please check your connection.';
-          apiError.status = 0;
         }
 
         console.error('❌ API Error:', apiError);
